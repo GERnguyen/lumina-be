@@ -43,6 +43,12 @@ export class Course {
   @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
   price!: number;
 
+  @Column({ name: "enrollment_count", type: "int", default: 0 })
+  enrollmentCount!: number;
+
+  @Column({ name: "discount_percent", type: "int", default: 0 })
+  discountPercent!: number;
+
   @Column({ name: "is_active", type: "boolean", default: true })
   isActive!: boolean;
 
@@ -78,6 +84,9 @@ export class Course {
   @ManyToMany(() => Tag, (tag) => tag.courses, { cascade: false })
   @JoinTable({ name: "course_tags" })
   tags!: Tag[];
+
+  @ManyToMany(() => User, (user) => user.favoriteCourses)
+  favoritedByUsers!: User[];
 
   @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;

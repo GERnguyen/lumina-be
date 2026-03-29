@@ -7,6 +7,8 @@ interface CourseQuery {
   categoryId?: string;
   keyword?: string;
   tag?: string;
+  page?: string;
+  limit?: string;
 }
 
 interface CourseParams {
@@ -27,12 +29,63 @@ export class CourseController {
           : undefined,
         keyword: req.query.keyword,
         tag: req.query.tag,
+        page: req.query.page ? parseInt(req.query.page, 10) : 1,
+        limit: req.query.limit ? parseInt(req.query.limit, 10) : 10,
       };
+
+      if (!Number.isInteger(filters.page) || (filters.page ?? 1) <= 0) {
+        res.status(400).json({ message: "page must be a positive integer." });
+        return;
+      }
+
+      if (!Number.isInteger(filters.limit) || (filters.limit ?? 1) <= 0) {
+        res.status(400).json({ message: "limit must be a positive integer." });
+        return;
+      }
 
       const courses = await this.service.getAllCourses(filters);
       res.status(200).json(courses);
     } catch (_error) {
       res.status(500).json({ message: "Failed to fetch courses." });
+    }
+  };
+
+  getBestSellers = async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const courses = await this.service.getBestSellers();
+      res.status(200).json(courses);
+    } catch (_error) {
+      res.status(500).json({ message: "Failed to fetch best sellers." });
+    }
+  };
+
+  getTopDiscounted = async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const courses = await this.service.getTopDiscounted();
+      res.status(200).json(courses);
+    } catch (_error) {
+      res
+        .status(500)
+        .json({ message: "Failed to fetch top discounted courses." });
+    }
+  };
+
+  getSimilarCourses = async (
+    req: Request<CourseParams>,
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const courseId = Number(req.params.id);
+
+      if (Number.isNaN(courseId)) {
+        res.status(400).json({ message: "Invalid course id." });
+        return;
+      }
+
+      const courses = await this.service.getSimilarCourses(courseId);
+      res.status(200).json(courses);
+    } catch (_error) {
+      res.status(500).json({ message: "Failed to fetch similar courses." });
     }
   };
 

@@ -15,6 +15,8 @@ export enum OrderStatus {
   PENDING = "pending",
   PAID = "paid",
   COMPLETED = "completed",
+  FAILED = "failed",
+  EXPIRED = "expired",
   CANCELLED = "cancelled",
 }
 

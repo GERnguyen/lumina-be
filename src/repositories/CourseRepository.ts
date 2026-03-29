@@ -9,6 +9,15 @@ export interface CourseFilters {
   categoryId?: number;
   keyword?: string;
   tag?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedCourseResult {
+  data: Course[];
+  total: number;
+  page: number;
+  totalPages: number;
 }
 
 export interface CreateCourseInput {
@@ -28,13 +37,17 @@ export class CourseRepository {
     this.repository = AppDataSource.getRepository(Course);
   }
 
-  async findAllCourses(filters: CourseFilters): Promise<Course[]> {
+  async findAllCourses(filters: CourseFilters): Promise<PaginatedCourseResult> {
+    const page = filters.page && filters.page > 0 ? filters.page : 1;
+    const limit = filters.limit && filters.limit > 0 ? filters.limit : 10;
+
     const queryBuilder = this.repository
       .createQueryBuilder("course")
       .leftJoinAndSelect("course.category", "category")
       .leftJoinAndSelect("course.instructor", "instructor")
       .leftJoinAndSelect("instructor.profile", "profile")
       .leftJoinAndSelect("course.tags", "tag")
+      .distinct(true)
       .select([
         "course.id",
         "course.title",
@@ -42,6 +55,8 @@ export class CourseRepository {
         "course.description",
         "course.thumbnailUrl",
         "course.price",
+        "course.enrollmentCount",
+        "course.discountPercent",
         "course.isActive",
         "course.publishedAt",
         "course.createdAt",
@@ -79,7 +94,157 @@ export class CourseRepository {
       });
     }
 
-    return queryBuilder.orderBy("course.createdAt", "DESC").getMany();
+    queryBuilder
+      .orderBy("course.createdAt", "DESC")
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [courses, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      data: courses,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getBestSellers(): Promise<Course[]> {
+    return this.repository
+      .createQueryBuilder("course")
+      .leftJoinAndSelect("course.category", "category")
+      .leftJoinAndSelect("course.instructor", "instructor")
+      .leftJoinAndSelect("instructor.profile", "profile")
+      .leftJoinAndSelect("course.tags", "tag")
+      .select([
+        "course.id",
+        "course.title",
+        "course.slug",
+        "course.description",
+        "course.thumbnailUrl",
+        "course.price",
+        "course.enrollmentCount",
+        "course.discountPercent",
+        "course.isActive",
+        "course.publishedAt",
+        "course.createdAt",
+        "course.updatedAt",
+        "category.id",
+        "category.name",
+        "category.description",
+        "instructor.id",
+        "instructor.email",
+        "instructor.role",
+        "profile.id",
+        "profile.fullName",
+        "profile.avatar",
+        "tag.id",
+        "tag.name",
+      ])
+      .where("course.isActive = :isActive", { isActive: true })
+      .orderBy("course.enrollmentCount", "DESC")
+      .addOrderBy("course.createdAt", "DESC")
+      .take(10)
+      .getMany();
+  }
+
+  async getTopDiscounted(): Promise<Course[]> {
+    return this.repository
+      .createQueryBuilder("course")
+      .leftJoinAndSelect("course.category", "category")
+      .leftJoinAndSelect("course.instructor", "instructor")
+      .leftJoinAndSelect("instructor.profile", "profile")
+      .leftJoinAndSelect("course.tags", "tag")
+      .select([
+        "course.id",
+        "course.title",
+        "course.slug",
+        "course.description",
+        "course.thumbnailUrl",
+        "course.price",
+        "course.enrollmentCount",
+        "course.discountPercent",
+        "course.isActive",
+        "course.publishedAt",
+        "course.createdAt",
+        "course.updatedAt",
+        "category.id",
+        "category.name",
+        "category.description",
+        "instructor.id",
+        "instructor.email",
+        "instructor.role",
+        "profile.id",
+        "profile.fullName",
+        "profile.avatar",
+        "tag.id",
+        "tag.name",
+      ])
+      .where("course.isActive = :isActive", { isActive: true })
+      .orderBy("course.discountPercent", "DESC")
+      .addOrderBy("course.createdAt", "DESC")
+      .take(20)
+      .getMany();
+  }
+
+  async getSimilarCourses(courseId: number): Promise<Course[]> {
+    const baseCourse = await this.repository.findOne({
+      where: { id: courseId },
+      relations: {
+        category: true,
+      },
+      select: {
+        id: true,
+        category: {
+          id: true,
+        },
+      },
+    });
+
+    if (!baseCourse?.category?.id) {
+      return [];
+    }
+
+    return this.repository
+      .createQueryBuilder("course")
+      .leftJoinAndSelect("course.category", "category")
+      .leftJoinAndSelect("course.instructor", "instructor")
+      .leftJoinAndSelect("instructor.profile", "profile")
+      .leftJoinAndSelect("course.tags", "tag")
+      .select([
+        "course.id",
+        "course.title",
+        "course.slug",
+        "course.description",
+        "course.thumbnailUrl",
+        "course.price",
+        "course.enrollmentCount",
+        "course.discountPercent",
+        "course.isActive",
+        "course.publishedAt",
+        "course.createdAt",
+        "course.updatedAt",
+        "category.id",
+        "category.name",
+        "category.description",
+        "instructor.id",
+        "instructor.email",
+        "instructor.role",
+        "profile.id",
+        "profile.fullName",
+        "profile.avatar",
+        "tag.id",
+        "tag.name",
+      ])
+      .where("course.isActive = :isActive", { isActive: true })
+      .andWhere("category.id = :categoryId", {
+        categoryId: baseCourse.category.id,
+      })
+      .andWhere("course.id != :courseId", { courseId })
+      .orderBy("course.enrollmentCount", "DESC")
+      .addOrderBy("course.createdAt", "DESC")
+      .take(5)
+      .getMany();
   }
 
   async findCourseById(id: number): Promise<Course | null> {
@@ -134,6 +299,8 @@ export class CourseRepository {
       slug: input.slug,
       description: input.description,
       price: input.price ?? 0,
+      enrollmentCount: 0,
+      discountPercent: 0,
       instructor: input.instructor,
       category: input.category,
       tags: input.tags,

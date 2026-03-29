@@ -1,5 +1,6 @@
 import {
   CourseFilters,
+  PaginatedCourseResult,
   CourseRepository,
   CreateCourseInput as CreateCourseRepositoryInput,
   courseRepository,
@@ -29,8 +30,20 @@ export class CourseService {
     private readonly tagRepo: TagRepository,
   ) {}
 
-  async getAllCourses(filters: CourseFilters) {
+  async getAllCourses(filters: CourseFilters): Promise<PaginatedCourseResult> {
     return this.courseRepo.findAllCourses(filters);
+  }
+
+  async getBestSellers() {
+    return this.courseRepo.getBestSellers();
+  }
+
+  async getTopDiscounted() {
+    return this.courseRepo.getTopDiscounted();
+  }
+
+  async getSimilarCourses(courseId: number) {
+    return this.courseRepo.getSimilarCourses(courseId);
   }
 
   async getCourseById(id: number) {

@@ -9,6 +9,7 @@ import { Coupon } from "./entities/Coupon";
 import { Course } from "./entities/Course";
 import { Enrollment } from "./entities/Enrollment";
 import { Lecture } from "./entities/Lecture";
+import { OtpRecord } from "./entities/OtpRecord";
 import { Order } from "./entities/Order";
 import { OrderDetail } from "./entities/OrderDetail";
 import { Profile } from "./entities/Profile";
@@ -30,6 +31,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME || "cinx_db",
   entities: [
     User,
+    OtpRecord,
     Profile,
     Category,
     Course,

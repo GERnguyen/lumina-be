@@ -6,6 +6,10 @@ interface OrderParams {
   id: string;
 }
 
+interface CheckoutBody {
+  usePoints?: boolean;
+}
+
 export class OrderController {
   constructor(private readonly service: OrderService) {}
 
@@ -63,7 +67,7 @@ export class OrderController {
   };
 
   checkout = async (
-    req: AuthenticatedRequest,
+    req: AuthenticatedRequest & { body: CheckoutBody },
     res: Response,
   ): Promise<void> => {
     try {
@@ -74,7 +78,8 @@ export class OrderController {
         return;
       }
 
-      const order = await this.service.checkout(userId);
+      const usePoints = req.body?.usePoints === true;
+      const order = await this.service.checkout(userId, usePoints);
       res.status(200).json(order);
     } catch (error) {
       const message =
@@ -118,6 +123,40 @@ export class OrderController {
           ? 404
           : message === "Order is not in pending state" ||
               message === "Payment failed"
+            ? 400
+            : 500;
+
+      res.status(statusCode).json({ message });
+    }
+  };
+
+  cancelOrder = async (
+    req: AuthenticatedRequest & { params: OrderParams },
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({ message: "Unauthorized." });
+        return;
+      }
+
+      const orderId = Number(req.params.id);
+      if (Number.isNaN(orderId)) {
+        res.status(400).json({ message: "Invalid order id." });
+        return;
+      }
+
+      const order = await this.service.cancelOrder(userId, orderId);
+      res.status(200).json(order);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Cancel order failed.";
+      const statusCode =
+        message === "Order not found"
+          ? 404
+          : message === "Only pending orders can be cancelled"
             ? 400
             : 500;
 
