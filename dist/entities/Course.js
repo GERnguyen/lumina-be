@@ -17,6 +17,7 @@ const Enrollment_1 = require("./Enrollment");
 const OrderDetail_1 = require("./OrderDetail");
 const Review_1 = require("./Review");
 const Section_1 = require("./Section");
+const Tag_1 = require("./Tag");
 const User_1 = require("./User");
 let Course = class Course {
 };
@@ -38,13 +39,26 @@ __decorate([
     __metadata("design:type", String)
 ], Course.prototype, "description", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: "thumbnail_url", type: "varchar", length: 500, nullable: true }),
+    (0, typeorm_1.Column)({
+        name: "thumbnail_url",
+        type: "varchar",
+        length: 500,
+        nullable: true,
+    }),
     __metadata("design:type", String)
 ], Course.prototype, "thumbnailUrl", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: "decimal", precision: 10, scale: 2, default: 0 }),
     __metadata("design:type", Number)
 ], Course.prototype, "price", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: "enrollment_count", type: "int", default: 0 }),
+    __metadata("design:type", Number)
+], Course.prototype, "enrollmentCount", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: "discount_percent", type: "int", default: 0 }),
+    __metadata("design:type", Number)
+], Course.prototype, "discountPercent", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: "is_active", type: "boolean", default: true }),
     __metadata("design:type", Boolean)
@@ -54,7 +68,9 @@ __decorate([
     __metadata("design:type", Date)
 ], Course.prototype, "publishedAt", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => User_1.User, (user) => user.instructorCourses, { onDelete: "CASCADE" }),
+    (0, typeorm_1.ManyToOne)(() => User_1.User, (user) => user.instructorCourses, {
+        onDelete: "CASCADE",
+    }),
     __metadata("design:type", User_1.User)
 ], Course.prototype, "instructor", void 0);
 __decorate([
@@ -84,6 +100,15 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => OrderDetail_1.OrderDetail, (orderDetail) => orderDetail.course),
     __metadata("design:type", Array)
 ], Course.prototype, "orderDetails", void 0);
+__decorate([
+    (0, typeorm_1.ManyToMany)(() => Tag_1.Tag, (tag) => tag.courses, { cascade: false }),
+    (0, typeorm_1.JoinTable)({ name: "course_tags" }),
+    __metadata("design:type", Array)
+], Course.prototype, "tags", void 0);
+__decorate([
+    (0, typeorm_1.ManyToMany)(() => User_1.User, (user) => user.favoriteCourses),
+    __metadata("design:type", Array)
+], Course.prototype, "favoritedByUsers", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: "created_at" }),
     __metadata("design:type", Date)

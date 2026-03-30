@@ -14,6 +14,7 @@ const typeorm_1 = require("typeorm");
 const Cart_1 = require("./Cart");
 const Course_1 = require("./Course");
 const Enrollment_1 = require("./Enrollment");
+const OtpRecord_1 = require("./OtpRecord");
 const Order_1 = require("./Order");
 const Profile_1 = require("./Profile");
 const Review_1 = require("./Review");
@@ -29,6 +30,10 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "email", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: "varchar", length: 20, unique: true, nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "phone", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: "varchar", length: 255 }),
     __metadata("design:type", String)
 ], User.prototype, "password", void 0);
@@ -40,6 +45,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: "is_active", type: "boolean", default: true }),
     __metadata("design:type", Boolean)
 ], User.prototype, "isActive", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: "reward_points", type: "int", default: 0 }),
+    __metadata("design:type", Number)
+], User.prototype, "rewardPoints", void 0);
 __decorate([
     (0, typeorm_1.OneToOne)(() => Profile_1.Profile, (profile) => profile.user, { cascade: true }),
     __metadata("design:type", Profile_1.Profile)
@@ -64,6 +73,15 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => Review_1.Review, (review) => review.user),
     __metadata("design:type", Array)
 ], User.prototype, "reviews", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => OtpRecord_1.OtpRecord, (otpRecord) => otpRecord.user),
+    __metadata("design:type", Array)
+], User.prototype, "otpRecords", void 0);
+__decorate([
+    (0, typeorm_1.ManyToMany)(() => Course_1.Course, (course) => course.favoritedByUsers),
+    (0, typeorm_1.JoinTable)({ name: "user_favorites" }),
+    __metadata("design:type", Array)
+], User.prototype, "favoriteCourses", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: "created_at" }),
     __metadata("design:type", Date)

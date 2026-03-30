@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon --watch src --exec ts-node src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "seed": "ts-node src/utils/seeder.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -20,6 +21,7 @@
     "typeorm": "^0.3.27"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.4.0",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",

@@ -25,11 +25,19 @@ __decorate([
     __metadata("design:type", User_1.User)
 ], Enrollment.prototype, "user", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => Course_1.Course, (course) => course.enrollments, { onDelete: "CASCADE" }),
+    (0, typeorm_1.ManyToOne)(() => Course_1.Course, (course) => course.enrollments, {
+        onDelete: "CASCADE",
+    }),
     __metadata("design:type", Course_1.Course)
 ], Enrollment.prototype, "course", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: "progress_percent", type: "decimal", precision: 5, scale: 2, default: 0 }),
+    (0, typeorm_1.Column)({
+        name: "progress_percent",
+        type: "decimal",
+        precision: 5,
+        scale: 2,
+        default: 0,
+    }),
     __metadata("design:type", Number)
 ], Enrollment.prototype, "progressPercent", void 0);
 __decorate([

@@ -36,7 +36,9 @@ __decorate([
     __metadata("design:type", Number)
 ], Lecture.prototype, "orderIndex", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => Section_1.Section, (section) => section.lectures, { onDelete: "CASCADE" }),
+    (0, typeorm_1.ManyToOne)(() => Section_1.Section, (section) => section.lectures, {
+        onDelete: "CASCADE",
+    }),
     __metadata("design:type", Section_1.Section)
 ], Lecture.prototype, "section", void 0);
 exports.Lecture = Lecture = __decorate([

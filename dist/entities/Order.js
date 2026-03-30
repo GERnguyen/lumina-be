@@ -18,6 +18,9 @@ var OrderStatus;
 (function (OrderStatus) {
     OrderStatus["PENDING"] = "pending";
     OrderStatus["PAID"] = "paid";
+    OrderStatus["COMPLETED"] = "completed";
+    OrderStatus["FAILED"] = "failed";
+    OrderStatus["EXPIRED"] = "expired";
     OrderStatus["CANCELLED"] = "cancelled";
 })(OrderStatus || (exports.OrderStatus = OrderStatus = {}));
 let Order = class Order {
@@ -51,7 +54,12 @@ __decorate([
     __metadata("design:type", Number)
 ], Order.prototype, "totalAmount", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: "payment_method", type: "varchar", length: 50, default: "mock" }),
+    (0, typeorm_1.Column)({
+        name: "payment_method",
+        type: "varchar",
+        length: 50,
+        default: "mock",
+    }),
     __metadata("design:type", String)
 ], Order.prototype, "paymentMethod", void 0);
 __decorate([

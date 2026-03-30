@@ -15,6 +15,14 @@ class UserRepository {
             },
         });
     }
+    async findById(id) {
+        return this.repository.findOne({
+            where: { id },
+            relations: {
+                profile: true,
+            },
+        });
+    }
     async save(user) {
         return this.repository.save(user);
     }

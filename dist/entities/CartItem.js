@@ -25,7 +25,9 @@ __decorate([
     __metadata("design:type", Cart_1.Cart)
 ], CartItem.prototype, "cart", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => Course_1.Course, (course) => course.cartItems, { onDelete: "CASCADE" }),
+    (0, typeorm_1.ManyToOne)(() => Course_1.Course, (course) => course.cartItems, {
+        onDelete: "CASCADE",
+    }),
     __metadata("design:type", Course_1.Course)
 ], CartItem.prototype, "course", void 0);
 __decorate([

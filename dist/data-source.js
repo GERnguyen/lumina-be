@@ -15,6 +15,7 @@ const Coupon_1 = require("./entities/Coupon");
 const Course_1 = require("./entities/Course");
 const Enrollment_1 = require("./entities/Enrollment");
 const Lecture_1 = require("./entities/Lecture");
+const OtpRecord_1 = require("./entities/OtpRecord");
 const Order_1 = require("./entities/Order");
 const OrderDetail_1 = require("./entities/OrderDetail");
 const Profile_1 = require("./entities/Profile");
@@ -22,6 +23,7 @@ const Question_1 = require("./entities/Question");
 const Quiz_1 = require("./entities/Quiz");
 const Review_1 = require("./entities/Review");
 const Section_1 = require("./entities/Section");
+const Tag_1 = require("./entities/Tag");
 const User_1 = require("./entities/User");
 dotenv_1.default.config();
 exports.AppDataSource = new typeorm_1.DataSource({
@@ -33,6 +35,7 @@ exports.AppDataSource = new typeorm_1.DataSource({
     database: process.env.DB_NAME || "cinx_db",
     entities: [
         User_1.User,
+        OtpRecord_1.OtpRecord,
         Profile_1.Profile,
         Category_1.Category,
         Course_1.Course,
@@ -48,6 +51,7 @@ exports.AppDataSource = new typeorm_1.DataSource({
         Coupon_1.Coupon,
         Enrollment_1.Enrollment,
         Review_1.Review,
+        Tag_1.Tag,
     ],
     synchronize: true,
     logging: false,

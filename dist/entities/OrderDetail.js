@@ -25,7 +25,9 @@ __decorate([
     __metadata("design:type", Order_1.Order)
 ], OrderDetail.prototype, "order", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => Course_1.Course, (course) => course.orderDetails, { onDelete: "RESTRICT" }),
+    (0, typeorm_1.ManyToOne)(() => Course_1.Course, (course) => course.orderDetails, {
+        onDelete: "RESTRICT",
+    }),
     __metadata("design:type", Course_1.Course)
 ], OrderDetail.prototype, "course", void 0);
 __decorate([
@@ -33,7 +35,13 @@ __decorate([
     __metadata("design:type", Number)
 ], OrderDetail.prototype, "unitPrice", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: "discount_amount", type: "decimal", precision: 10, scale: 2, default: 0 }),
+    (0, typeorm_1.Column)({
+        name: "discount_amount",
+        type: "decimal",
+        precision: 10,
+        scale: 2,
+        default: 0,
+    }),
     __metadata("design:type", Number)
 ], OrderDetail.prototype, "discountAmount", void 0);
 __decorate([

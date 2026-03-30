@@ -33,7 +33,9 @@ __decorate([
     __metadata("design:type", Number)
 ], Quiz.prototype, "orderIndex", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => Section_1.Section, (section) => section.quizzes, { onDelete: "CASCADE" }),
+    (0, typeorm_1.ManyToOne)(() => Section_1.Section, (section) => section.quizzes, {
+        onDelete: "CASCADE",
+    }),
     __metadata("design:type", Section_1.Section)
 ], Quiz.prototype, "section", void 0);
 __decorate([

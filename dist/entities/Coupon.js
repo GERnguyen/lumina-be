@@ -42,11 +42,23 @@ __decorate([
     __metadata("design:type", Number)
 ], Coupon.prototype, "discountValue", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: "max_discount", type: "decimal", precision: 10, scale: 2, nullable: true }),
+    (0, typeorm_1.Column)({
+        name: "max_discount",
+        type: "decimal",
+        precision: 10,
+        scale: 2,
+        nullable: true,
+    }),
     __metadata("design:type", Number)
 ], Coupon.prototype, "maxDiscount", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: "min_order_value", type: "decimal", precision: 10, scale: 2, nullable: true }),
+    (0, typeorm_1.Column)({
+        name: "min_order_value",
+        type: "decimal",
+        precision: 10,
+        scale: 2,
+        nullable: true,
+    }),
     __metadata("design:type", Number)
 ], Coupon.prototype, "minOrderValue", void 0);
 __decorate([
