@@ -6,5 +6,6 @@ const cartRoutes = Router();
 
 cartRoutes.get("/", authMiddleware, cartController.getCart);
 cartRoutes.post("/", authMiddleware, cartController.addToCart);
+cartRoutes.delete("/:courseId", authMiddleware, cartController.removeFromCart);
 
 export default cartRoutes;

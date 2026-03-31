@@ -14,6 +14,7 @@ export interface MeResponse {
   role: string;
   phone?: string;
   isActive: boolean;
+  rewardPoints: number;
   profile: {
     fullName?: string;
     avatar?: string;
@@ -45,6 +46,7 @@ export class UserService {
       role: user.role,
       phone: user.phone,
       isActive: user.isActive,
+      rewardPoints: user.rewardPoints ?? 0,
       profile: {
         fullName: user.profile?.fullName,
         avatar: user.profile?.avatar,

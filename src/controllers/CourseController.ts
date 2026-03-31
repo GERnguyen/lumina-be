@@ -9,6 +9,9 @@ interface CourseQuery {
   tag?: string;
   page?: string;
   limit?: string;
+  sortBy?: string;
+  priceType?: string;
+  isDiscounted?: string;
 }
 
 interface CourseParams {
@@ -31,6 +34,9 @@ export class CourseController {
         tag: req.query.tag,
         page: req.query.page ? parseInt(req.query.page, 10) : 1,
         limit: req.query.limit ? parseInt(req.query.limit, 10) : 10,
+        sortBy: req.query.sortBy,
+        priceType: req.query.priceType,
+        isDiscounted: req.query.isDiscounted === "true",
       };
 
       if (!Number.isInteger(filters.page) || (filters.page ?? 1) <= 0) {

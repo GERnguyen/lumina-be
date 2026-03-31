@@ -75,6 +75,19 @@ export class OrderService {
           throw new Error("User not found");
         }
 
+        const existingPendingOrder = await orderRepository.findOne({
+          where: {
+            user: { id: userId },
+            status: OrderStatus.PENDING,
+          },
+        });
+
+        if (existingPendingOrder) {
+          throw new Error(
+            "Ban dang co mot don hang cho thanh toan. Vui long hoan tat hoac huy don hang do truoc khi tao don moi.",
+          );
+        }
+
         const cart = await cartRepository.findOne({
           where: { user: { id: userId } },
           relations: {
@@ -147,7 +160,11 @@ export class OrderService {
     return pendingOrder;
   }
 
-  async confirmPayment(userId: number, orderId: number): Promise<Order> {
+  async confirmPayment(
+    userId: number,
+    orderId: number,
+    useRewardPoints = false,
+  ): Promise<Order> {
     try {
       const paidOrder = await AppDataSource.manager.transaction(
         async (manager) => {
@@ -189,11 +206,32 @@ export class OrderService {
             throw new Error("Order is not in pending state");
           }
 
+          const originalTotalPrice = Number(order.totalAmount);
+          let finalPrice = originalTotalPrice;
+          let pointsDeducted = 0;
+
+          if (useRewardPoints && (user.rewardPoints ?? 0) > 0) {
+            const discountAmount = (user.rewardPoints ?? 0) * 1000;
+            finalPrice = Math.max(0, originalTotalPrice - discountAmount);
+            pointsDeducted = Math.ceil(
+              (originalTotalPrice - finalPrice) / 1000,
+            );
+
+            if (pointsDeducted > 0) {
+              user.rewardPoints = Math.max(
+                0,
+                (user.rewardPoints ?? 0) - pointsDeducted,
+              );
+              await userRepository.save(user);
+            }
+          }
+
+          order.discountAmount = originalTotalPrice - finalPrice;
+          order.totalAmount = finalPrice;
+
           let paymentSuccess = false;
           try {
-            paymentSuccess = await this.paymentContext.pay(
-              Number(order.totalAmount),
-            );
+            paymentSuccess = await this.paymentContext.pay(finalPrice);
           } catch (_error) {
             throw new Error("Payment failed");
           }

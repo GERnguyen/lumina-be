@@ -1,17 +1,34 @@
 import { AppDataSource } from "../data-source";
 import { Course } from "../entities/Course";
+import { Enrollment } from "../entities/Enrollment";
+import { Review } from "../entities/Review";
 import { User } from "../entities/User";
-import { enrollmentRepository } from "../repositories/EnrollmentRepository";
 import {
   CourseReviewItem,
   reviewRepository,
   ReviewRepository,
 } from "../repositories/ReviewRepository";
 
-export interface CreateOrUpdateReviewInput {
+export interface SubmitReviewInput {
   courseId: number;
   rating: number;
   comment?: string;
+}
+
+export interface SubmitReviewResult {
+  message: string;
+  rewardPointsAdded: number;
+  totalRewardPoints: number;
+  review: {
+    id: number;
+    rating: number;
+    comment?: string;
+    createdAt: Date;
+  };
+  courseStats: {
+    averageRating: number;
+    reviewCount: number;
+  };
 }
 
 export interface CourseReviewSummary {
@@ -23,32 +40,10 @@ export interface CourseReviewSummary {
 export class ReviewService {
   constructor(private readonly repo: ReviewRepository) {}
 
-  async createOrUpdateReview(
+  async submitReview(
     userId: number,
-    input: CreateOrUpdateReviewInput,
-  ): Promise<CourseReviewItem> {
-    const courseRepository = AppDataSource.getRepository(Course);
-
-    const course = await courseRepository.findOne({
-      where: { id: input.courseId },
-      select: {
-        id: true,
-      },
-    });
-
-    if (!course) {
-      throw new Error("Course not found");
-    }
-
-    const hasEnrollment = await enrollmentRepository.hasEnrollment(
-      userId,
-      input.courseId,
-    );
-
-    if (!hasEnrollment) {
-      throw new Error("FORBIDDEN_NOT_ENROLLED");
-    }
-
+    input: SubmitReviewInput,
+  ): Promise<SubmitReviewResult> {
     const rating = Number(input.rating);
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       throw new Error("Rating must be an integer from 1 to 5");
@@ -56,42 +51,100 @@ export class ReviewService {
 
     const sanitizedComment = input.comment?.trim() || undefined;
 
-    const existingReview = await this.repo.findByUserAndCourse(
-      userId,
-      input.courseId,
-    );
+    return AppDataSource.manager.transaction(async (manager) => {
+      const courseRepository = manager.getRepository(Course);
+      const userRepository = manager.getRepository(User);
+      const enrollmentRepository = manager.getRepository(Enrollment);
+      const reviewRepository = manager.getRepository(Review);
 
-    if (existingReview) {
-      existingReview.rating = rating;
-      existingReview.comment = sanitizedComment;
-      await this.repo.save(existingReview);
-    } else {
-      await this.repo.create({
-        userId,
-        courseId: input.courseId,
-        rating,
-        comment: sanitizedComment,
+      const course = await courseRepository.findOne({
+        where: { id: input.courseId },
+        select: {
+          id: true,
+        },
       });
 
-      const userRepository = AppDataSource.getRepository(User);
-      const user = await userRepository.findOne({ where: { id: userId } });
-
-      if (user) {
-        user.rewardPoints = (user.rewardPoints ?? 0) + 50;
-        await userRepository.save(user);
+      if (!course) {
+        throw new Error("Course not found");
       }
-    }
 
-    const refreshedReviews = await this.repo.findByCourseId(input.courseId);
-    const ownReview = refreshedReviews.find(
-      (review) => review.user.id === userId,
-    );
+      const hasEnrollment = await enrollmentRepository.exist({
+        where: {
+          user: { id: userId },
+          course: { id: input.courseId },
+        },
+      });
 
-    if (!ownReview) {
-      throw new Error("Failed to save review");
-    }
+      if (!hasEnrollment) {
+        throw new Error("Bạn cần hoàn thành mua khóa học để đánh giá");
+      }
 
-    return ownReview;
+      const existingReview = await reviewRepository.findOne({
+        where: {
+          user: { id: userId },
+          course: { id: input.courseId },
+        },
+      });
+
+      if (existingReview) {
+        throw new Error("Bạn đã đánh giá khóa học này rồi");
+      }
+
+      const createdReview = await reviewRepository.save(
+        reviewRepository.create({
+          user: { id: userId },
+          course: { id: input.courseId },
+          rating,
+          comment: sanitizedComment,
+        }),
+      );
+
+      const user = await userRepository.findOne({ where: { id: userId } });
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      const rewardPointsAdded = 100;
+      user.rewardPoints = (user.rewardPoints ?? 0) + rewardPointsAdded;
+      await userRepository.save(user);
+
+      const ratingStats = await reviewRepository
+        .createQueryBuilder("review")
+        .select("COALESCE(AVG(review.rating), 0)", "averageRating")
+        .addSelect("COUNT(review.id)", "reviewCount")
+        .where("review.courseId = :courseId", { courseId: input.courseId })
+        .getRawOne<{
+          averageRating: string | number;
+          reviewCount: string | number;
+        }>();
+
+      const averageRating = Number(ratingStats?.averageRating ?? 0);
+      const reviewCount = Number(ratingStats?.reviewCount ?? 0);
+
+      await courseRepository.update(
+        { id: input.courseId },
+        {
+          averageRating,
+          reviewCount,
+        },
+      );
+
+      return {
+        message: "Đánh giá thành công.",
+        rewardPointsAdded,
+        totalRewardPoints: user.rewardPoints,
+        review: {
+          id: createdReview.id,
+          rating: createdReview.rating,
+          comment: createdReview.comment ?? undefined,
+          createdAt: createdReview.createdAt,
+        },
+        courseStats: {
+          averageRating: Math.round(averageRating * 100) / 100,
+          reviewCount,
+        },
+      };
+    });
   }
 
   async getCourseReviews(courseId: number): Promise<CourseReviewSummary> {

@@ -11,6 +11,9 @@ export interface CourseFilters {
   tag?: string;
   page?: number;
   limit?: number;
+  sortBy?: string;
+  priceType?: string;
+  isDiscounted?: boolean;
 }
 
 export interface PaginatedCourseResult {
@@ -40,6 +43,9 @@ export class CourseRepository {
   async findAllCourses(filters: CourseFilters): Promise<PaginatedCourseResult> {
     const page = filters.page && filters.page > 0 ? filters.page : 1;
     const limit = filters.limit && filters.limit > 0 ? filters.limit : 10;
+    const sortBy = filters.sortBy?.trim().toLowerCase();
+    const priceType = filters.priceType?.trim().toLowerCase();
+    const isDiscounted = filters.isDiscounted === true;
 
     const queryBuilder = this.repository
       .createQueryBuilder("course")
@@ -94,8 +100,40 @@ export class CourseRepository {
       });
     }
 
+    if (priceType === "free") {
+      queryBuilder.andWhere("course.price = 0");
+    } else if (priceType === "paid") {
+      queryBuilder.andWhere("course.price > 0");
+    }
+
+    if (isDiscounted) {
+      queryBuilder.andWhere("course.discountPercent > 0");
+    }
+
+    switch (sortBy) {
+      case "best_seller":
+        queryBuilder.orderBy("course.enrollmentCount", "DESC");
+        break;
+      case "newest":
+        queryBuilder.orderBy("course.createdAt", "DESC");
+        break;
+      case "price_asc":
+        queryBuilder.orderBy("course.price", "ASC");
+        break;
+      case "price_desc":
+        queryBuilder.orderBy("course.price", "DESC");
+        break;
+      case "top_rated":
+        // Fallback sorting while average rating column is not available.
+        queryBuilder.orderBy("course.enrollmentCount", "DESC");
+        break;
+      default:
+        queryBuilder.orderBy("course.createdAt", "DESC");
+        break;
+    }
+
     queryBuilder
-      .orderBy("course.createdAt", "DESC")
+      .addOrderBy("course.createdAt", "DESC")
       .skip((page - 1) * limit)
       .take(limit);
 

@@ -34,6 +34,7 @@ export interface SafeUser {
   phone?: string;
   role: string;
   isActive: boolean;
+  rewardPoints: number;
   fullName?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -173,6 +174,7 @@ export class AuthService {
       phone: user.phone,
       role: user.role,
       isActive: user.isActive,
+      rewardPoints: user.rewardPoints ?? 0,
       fullName: user.profile?.fullName,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,

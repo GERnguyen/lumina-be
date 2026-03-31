@@ -10,6 +10,10 @@ interface AddToCartBody {
   courseId: number;
 }
 
+interface RemoveFromCartParams {
+  courseId: string;
+}
+
 export class CartController {
   constructor(private readonly service: CartService) {}
 
@@ -67,6 +71,35 @@ export class CartController {
               message === "Course is not available"
             ? 400
             : 500;
+
+      res.status(statusCode).json({ message });
+    }
+  };
+
+  removeFromCart = async (
+    req: AuthenticatedRequest & { params: RemoveFromCartParams },
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({ message: "Unauthorized." });
+        return;
+      }
+
+      const courseId = Number(req.params.courseId);
+      if (!courseId || Number.isNaN(courseId)) {
+        res.status(400).json({ message: "Invalid course id." });
+        return;
+      }
+
+      await this.service.removeFromCart(userId, courseId);
+      res.status(200).json({ message: "Removed course from cart." });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to remove from cart.";
+      const statusCode = message === "User not found" ? 404 : 500;
 
       res.status(statusCode).json({ message });
     }

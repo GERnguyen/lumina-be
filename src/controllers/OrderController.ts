@@ -10,6 +10,10 @@ interface CheckoutBody {
   usePoints?: boolean;
 }
 
+interface ConfirmPaymentBody {
+  useRewardPoints?: boolean;
+}
+
 export class OrderController {
   constructor(private readonly service: OrderService) {}
 
@@ -87,7 +91,9 @@ export class OrderController {
       const statusCode =
         message === "User not found"
           ? 404
-          : message === "Cart is empty"
+          : message === "Cart is empty" ||
+              message ===
+                "Ban dang co mot don hang cho thanh toan. Vui long hoan tat hoac huy don hang do truoc khi tao don moi."
             ? 400
             : 500;
 
@@ -96,7 +102,10 @@ export class OrderController {
   };
 
   confirmPayment = async (
-    req: AuthenticatedRequest & { params: OrderParams },
+    req: AuthenticatedRequest & {
+      params: OrderParams;
+      body: ConfirmPaymentBody;
+    },
     res: Response,
   ): Promise<void> => {
     try {
@@ -113,7 +122,12 @@ export class OrderController {
         return;
       }
 
-      const order = await this.service.confirmPayment(userId, orderId);
+      const useRewardPoints = req.body?.useRewardPoints === true;
+      const order = await this.service.confirmPayment(
+        userId,
+        orderId,
+        useRewardPoints,
+      );
       res.status(200).json(order);
     } catch (error) {
       const message =

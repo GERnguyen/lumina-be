@@ -30,8 +30,12 @@ export class CourseService {
     private readonly tagRepo: TagRepository,
   ) {}
 
-  async getAllCourses(filters: CourseFilters): Promise<PaginatedCourseResult> {
+  async findAllCourses(filters: CourseFilters): Promise<PaginatedCourseResult> {
     return this.courseRepo.findAllCourses(filters);
+  }
+
+  async getAllCourses(filters: CourseFilters): Promise<PaginatedCourseResult> {
+    return this.findAllCourses(filters);
   }
 
   async getBestSellers() {

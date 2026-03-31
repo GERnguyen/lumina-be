@@ -54,6 +54,10 @@ __decorate([
     __metadata("design:type", Number)
 ], Order.prototype, "totalAmount", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: "discount_amount", type: "decimal", precision: 10, scale: 2, default: 0 }),
+    __metadata("design:type", Number)
+], Order.prototype, "discountAmount", void 0);
+__decorate([
     (0, typeorm_1.Column)({
         name: "payment_method",
         type: "varchar",

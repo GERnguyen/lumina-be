@@ -135,6 +135,33 @@ export class CartService {
 
     return refreshedCart;
   }
+
+  async removeFromCart(userId: number, courseId: number): Promise<void> {
+    const userRepository = AppDataSource.getRepository(User);
+    const cartRepository = AppDataSource.getRepository(Cart);
+    const cartItemRepository = AppDataSource.getRepository(CartItem);
+
+    const user = await userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const cart = await cartRepository.findOne({
+      where: { user: { id: userId } },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!cart) {
+      return;
+    }
+
+    await cartItemRepository.delete({
+      cart: { id: cart.id },
+      course: { id: courseId },
+    });
+  }
 }
 
 export const cartService = new CartService();

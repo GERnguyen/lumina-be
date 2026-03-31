@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { AuthenticatedRequest } from "../middlewares/auth.middleware";
 import {
-  CreateOrUpdateReviewInput,
+  SubmitReviewInput,
   ReviewService,
   reviewService,
 } from "../services/ReviewService";
@@ -19,7 +19,7 @@ interface CourseParams {
 export class ReviewController {
   constructor(private readonly service: ReviewService) {}
 
-  createOrUpdateReview = async (
+  submitReview = async (
     req: AuthenticatedRequest & { body: CreateReviewBody },
     res: Response,
   ): Promise<void> => {
@@ -31,7 +31,7 @@ export class ReviewController {
         return;
       }
 
-      const payload: CreateOrUpdateReviewInput = {
+      const payload: SubmitReviewInput = {
         courseId: Number(req.body.courseId),
         rating: Number(req.body.rating),
         comment: req.body.comment,
@@ -47,23 +47,21 @@ export class ReviewController {
         return;
       }
 
-      const review = await this.service.createOrUpdateReview(userId, payload);
-      res.status(200).json(review);
+      const result = await this.service.submitReview(userId, payload);
+      res.status(201).json(result);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to save review.";
 
-      if (message === "FORBIDDEN_NOT_ENROLLED") {
-        res.status(403).json({ message: "Ban chua mua khoa hoc nay!" });
-        return;
-      }
-
       const statusCode =
-        message === "Course not found"
-          ? 404
-          : message === "Rating must be an integer from 1 to 5"
+        message === "Bạn cần hoàn thành mua khóa học để đánh giá"
+          ? 403
+          : message === "Bạn đã đánh giá khóa học này rồi" ||
+              message === "Rating must be an integer from 1 to 5"
             ? 400
-            : 500;
+            : message === "Course not found" || message === "User not found"
+              ? 404
+              : 500;
 
       res.status(statusCode).json({ message });
     }

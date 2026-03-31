@@ -45,6 +45,15 @@ export class Order {
   totalAmount!: number;
 
   @Column({
+    name: "discount_amount",
+    type: "decimal",
+    precision: 10,
+    scale: 2,
+    default: 0,
+  })
+  discountAmount!: number;
+
+  @Column({
     name: "payment_method",
     type: "varchar",
     length: 50,
