@@ -10,6 +10,22 @@ import { MockPaymentStrategy } from "../utils/payment/MockPaymentStrategy";
 import { PaymentContext } from "../utils/payment/PaymentContext";
 
 export class OrderService {
+  private static readonly PENDING_STATUS_VALUES = [
+    OrderStatus.PENDING,
+    "PENDING",
+  ] as const;
+
+  private static readonly COMPLETED_STATUS_VALUES = [
+    OrderStatus.COMPLETED,
+    "COMPLETED",
+  ] as const;
+
+  private normalizeOrderStatus(status: string | null | undefined): string {
+    return String(status ?? "")
+      .trim()
+      .toLowerCase();
+  }
+
   private readonly paymentContext = new PaymentContext(
     new MockPaymentStrategy(),
   );
@@ -62,25 +78,32 @@ export class OrderService {
     });
   }
 
-  async checkout(userId: number, usePoints = false): Promise<Order> {
+  async checkout(
+    userId: number,
+    usePoints = false,
+    courseId?: number,
+  ): Promise<Order> {
     const pendingOrder = await AppDataSource.manager.transaction(
       async (manager) => {
         const userRepository = manager.getRepository(User);
         const cartRepository = manager.getRepository(Cart);
         const orderRepository = manager.getRepository(Order);
         const orderDetailRepository = manager.getRepository(OrderDetail);
+        const courseRepository = manager.getRepository(Course);
 
         const user = await userRepository.findOne({ where: { id: userId } });
         if (!user) {
           throw new Error("User not found");
         }
 
-        const existingPendingOrder = await orderRepository.findOne({
-          where: {
-            user: { id: userId },
-            status: OrderStatus.PENDING,
-          },
-        });
+        const existingPendingOrder = await orderRepository
+          .createQueryBuilder("order")
+          .where("order.userId = :userId", { userId })
+          .andWhere("order.status IN (:...pendingStatuses)", {
+            pendingStatuses: [...OrderService.PENDING_STATUS_VALUES],
+          })
+          .orderBy("order.created_at", "DESC")
+          .getOne();
 
         if (existingPendingOrder) {
           throw new Error(
@@ -88,22 +111,55 @@ export class OrderService {
           );
         }
 
-        const cart = await cartRepository.findOne({
-          where: { user: { id: userId } },
-          relations: {
-            items: {
-              course: true,
+        let totalAmount = 0;
+        let orderItems: Array<{
+          course: Course;
+          unitPrice: number;
+          quantity: number;
+        }> = [];
+
+        if (courseId) {
+          const selectedCourse = await courseRepository.findOne({
+            where: { id: courseId },
+          });
+
+          if (!selectedCourse) {
+            throw new Error("Course not found");
+          }
+
+          const selectedCoursePrice = Number(selectedCourse.price ?? 0);
+          totalAmount = selectedCoursePrice;
+          orderItems = [
+            {
+              course: selectedCourse,
+              unitPrice: selectedCoursePrice,
+              quantity: 1,
             },
-          },
-        });
+          ];
+        } else {
+          const cart = await cartRepository.findOne({
+            where: { user: { id: userId } },
+            relations: {
+              items: {
+                course: true,
+              },
+            },
+          });
 
-        if (!cart || cart.items.length === 0) {
-          throw new Error("Cart is empty");
+          if (!cart || cart.items.length === 0) {
+            throw new Error("Cart is empty");
+          }
+
+          orderItems = cart.items.map((item) => ({
+            course: item.course,
+            unitPrice: Number(item.unitPrice),
+            quantity: item.quantity,
+          }));
+
+          totalAmount = orderItems.reduce((total, item) => {
+            return total + item.unitPrice * item.quantity;
+          }, 0);
         }
-
-        const totalAmount = cart.items.reduce((total, item) => {
-          return total + Number(item.unitPrice) * item.quantity;
-        }, 0);
 
         let finalAmount = totalAmount;
         if (usePoints) {
@@ -124,13 +180,13 @@ export class OrderService {
 
         const savedOrder = await orderRepository.save(order);
 
-        const orderDetails = cart.items.map((item) =>
+        const orderDetails = orderItems.map((item) =>
           orderDetailRepository.create({
             order: savedOrder,
             course: item.course,
-            unitPrice: Number(item.unitPrice),
+            unitPrice: item.unitPrice,
             discountAmount: 0,
-            finalPrice: Number(item.unitPrice) * item.quantity,
+            finalPrice: item.unitPrice * item.quantity,
           }),
         );
 
@@ -198,11 +254,23 @@ export class OrderService {
             throw new Error("Order not found");
           }
 
-          if (order.status === OrderStatus.COMPLETED) {
+          const normalizedStatus = this.normalizeOrderStatus(order.status);
+
+          if (
+            OrderService.COMPLETED_STATUS_VALUES.some(
+              (status) =>
+                this.normalizeOrderStatus(status) === normalizedStatus,
+            )
+          ) {
             return order;
           }
 
-          if (order.status !== OrderStatus.PENDING) {
+          if (
+            !OrderService.PENDING_STATUS_VALUES.some(
+              (status) =>
+                this.normalizeOrderStatus(status) === normalizedStatus,
+            )
+          ) {
             throw new Error("Order is not in pending state");
           }
 
@@ -359,7 +427,13 @@ export class OrderService {
       throw new Error("Order not found");
     }
 
-    if (order.status !== OrderStatus.PENDING) {
+    if (
+      !OrderService.PENDING_STATUS_VALUES.some(
+        (status) =>
+          this.normalizeOrderStatus(status) ===
+          this.normalizeOrderStatus(order.status),
+      )
+    ) {
       throw new Error("Only pending orders can be cancelled");
     }
 
@@ -386,14 +460,18 @@ export class OrderService {
 
   async expirePendingOrders(): Promise<number> {
     const ttlMinutes = Number(process.env.ORDER_PENDING_TTL_MINUTES) || 30;
-    const expiredBefore = new Date(Date.now() - ttlMinutes * 60 * 1000);
 
     const result = await AppDataSource.getRepository(Order)
       .createQueryBuilder()
       .update(Order)
       .set({ status: OrderStatus.EXPIRED })
-      .where("status = :status", { status: OrderStatus.PENDING })
-      .andWhere("created_at <= :expiredBefore", { expiredBefore })
+      .where("status IN (:...pendingStatuses)", {
+        pendingStatuses: [...OrderService.PENDING_STATUS_VALUES],
+      })
+      // Compare against DB server time to avoid JS/DB timezone drift.
+      .andWhere("TIMESTAMPDIFF(MINUTE, created_at, NOW()) >= :ttlMinutes", {
+        ttlMinutes,
+      })
       .execute();
 
     return result.affected ?? 0;
@@ -409,7 +487,9 @@ export class OrderService {
       .set({ status: OrderStatus.FAILED })
       .where("id = :orderId", { orderId })
       .andWhere("userId = :userId", { userId })
-      .andWhere("status = :pending", { pending: OrderStatus.PENDING })
+      .andWhere("status IN (:...pendingStatuses)", {
+        pendingStatuses: [...OrderService.PENDING_STATUS_VALUES],
+      })
       .execute();
   }
 }

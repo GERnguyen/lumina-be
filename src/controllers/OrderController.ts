@@ -8,6 +8,7 @@ interface OrderParams {
 
 interface CheckoutBody {
   usePoints?: boolean;
+  courseId?: number;
 }
 
 interface ConfirmPaymentBody {
@@ -83,7 +84,13 @@ export class OrderController {
       }
 
       const usePoints = req.body?.usePoints === true;
-      const order = await this.service.checkout(userId, usePoints);
+      const requestedCourseId = Number(req.body?.courseId ?? 0);
+      const courseId =
+        Number.isFinite(requestedCourseId) && requestedCourseId > 0
+          ? requestedCourseId
+          : undefined;
+
+      const order = await this.service.checkout(userId, usePoints, courseId);
       res.status(200).json(order);
     } catch (error) {
       const message =
