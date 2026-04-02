@@ -1,0 +1,863 @@
+{
+  "info": {
+    "name": "Cinx E-learning Backend API",
+    "_postman_id": "ea7f8b9a-6a2d-4c01-9df3-2284f16aa111",
+    "description": "Full backend API collection with built-in tests and token automation.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:9090" },
+    { "key": "accessToken", "value": "" },
+    { "key": "courseId", "value": "1" },
+    { "key": "lectureId", "value": "1" },
+    { "key": "quizId", "value": "1" },
+    { "key": "orderId", "value": "1" },
+    { "key": "categoryId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /",
+          "request": {
+            "method": "GET",
+            "description": "Health check endpoint.",
+            "url": "{{baseUrl}}/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /api/auth/send-otp",
+          "request": {
+            "method": "POST",
+            "description": "Send OTP for REGISTER/FORGOT_PASSWORD/UPDATE_PROFILE.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"purpose\": \"REGISTER\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/send-otp"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/404', function () {",
+                  "  pm.expect([200,400,404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/auth/register",
+          "request": {
+            "method": "POST",
+            "description": "Register account with OTP.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"12345678\",\n  \"fullName\": \"Nguyen Van A\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201/400', function () {",
+                  "  pm.expect([201,400]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/auth/login",
+          "request": {
+            "method": "POST",
+            "description": "Login and auto-save accessToken to collection variable.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@cinx.local\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Has accessToken', function () {",
+                  "  pm.expect(json.accessToken).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.collectionVariables.set('accessToken', json.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/auth/reset-password",
+          "request": {
+            "method": "POST",
+            "description": "Reset password with OTP.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"newpassword123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/reset-password"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/404', function () {",
+                  "  pm.expect([200,400,404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Courses",
+      "item": [
+        {
+          "name": "GET /api/courses",
+          "request": {
+            "method": "GET",
+            "description": "List courses with filters and pagination.",
+            "url": {
+              "raw": "{{baseUrl}}/api/courses?categoryId={{categoryId}}&keyword=react&tag=mobile&page=1&limit=10&sortBy=best_seller&priceType=paid&isDiscounted=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses"],
+              "query": [
+                { "key": "categoryId", "value": "{{categoryId}}" },
+                { "key": "keyword", "value": "react" },
+                { "key": "tag", "value": "mobile" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "sortBy", "value": "best_seller" },
+                { "key": "priceType", "value": "paid" },
+                { "key": "isDiscounted", "value": "true" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Pagination envelope exists', function () {",
+                  "  pm.expect(json).to.have.property('data');",
+                  "  pm.expect(json).to.have.property('total');",
+                  "  pm.expect(json).to.have.property('page');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/courses/best-sellers",
+          "request": {
+            "method": "GET",
+            "description": "Best seller courses.",
+            "url": "{{baseUrl}}/api/courses/best-sellers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/courses/top-discounted",
+          "request": {
+            "method": "GET",
+            "description": "Top discounted courses.",
+            "url": "{{baseUrl}}/api/courses/top-discounted"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/courses/:id/similar",
+          "request": {
+            "method": "GET",
+            "description": "Similar courses by category.",
+            "url": "{{baseUrl}}/api/courses/{{courseId}}/similar"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400', function () { pm.expect([200,400]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/courses/:id",
+          "request": {
+            "method": "GET",
+            "description": "Course detail.",
+            "url": "{{baseUrl}}/api/courses/{{courseId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/404', function () { pm.expect([200,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/courses",
+          "request": {
+            "method": "POST",
+            "description": "Create course.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"React Native Masterclass\",\n  \"slug\": \"react-native-masterclass\",\n  \"instructorId\": 2,\n  \"description\": \"Course description\",\n  \"categoryId\": 1,\n  \"price\": 790000,\n  \"tags\": [\"mobile\", \"react\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/courses"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201/400/404', function () {",
+                  "  pm.expect([201,400,404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cart (JWT)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{accessToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "GET /api/cart",
+          "request": {
+            "method": "GET",
+            "description": "Get cart.",
+            "url": "{{baseUrl}}/api/cart"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/401', function () { pm.expect([200,401]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/cart",
+          "request": {
+            "method": "POST",
+            "description": "Add course to cart.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": {{courseId}}\n}"
+            },
+            "url": "{{baseUrl}}/api/cart"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/404', function () { pm.expect([200,400,401,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /api/cart/:courseId",
+          "request": {
+            "method": "DELETE",
+            "description": "Remove course from cart.",
+            "url": "{{baseUrl}}/api/cart/{{courseId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401', function () { pm.expect([200,400,401]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Orders (JWT)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{accessToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "GET /api/orders/my-orders",
+          "request": {
+            "method": "GET",
+            "description": "Get my orders.",
+            "url": "{{baseUrl}}/api/orders/my-orders"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/401', function () { pm.expect([200,401]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/orders/:id",
+          "request": {
+            "method": "GET",
+            "description": "Get order detail.",
+            "url": "{{baseUrl}}/api/orders/{{orderId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/404', function () { pm.expect([200,400,401,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/orders/checkout",
+          "request": {
+            "method": "POST",
+            "description": "Create pending order from cart. usePoints is optional.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"usePoints\": false\n}" },
+            "url": "{{baseUrl}}/api/orders/checkout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/404', function () {",
+                  "  pm.expect([200,400,401,404]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.id) pm.collectionVariables.set('orderId', String(json.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/orders/:id/confirm-payment",
+          "request": {
+            "method": "POST",
+            "description": "Confirm payment. useRewardPoints is boolean only; server computes deductible points.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"useRewardPoints\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/orders/{{orderId}}/confirm-payment"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/404', function () { pm.expect([200,400,401,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/orders/:id/cancel",
+          "request": {
+            "method": "POST",
+            "description": "Cancel pending order.",
+            "url": "{{baseUrl}}/api/orders/{{orderId}}/cancel"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/404', function () { pm.expect([200,400,401,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Learning + Quiz (JWT)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{accessToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "GET /api/learning/my-courses",
+          "request": {
+            "method": "GET",
+            "description": "Get my enrolled courses.",
+            "url": "{{baseUrl}}/api/learning/my-courses"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/401', function () { pm.expect([200,401]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/learning/lectures/:lectureId",
+          "request": {
+            "method": "GET",
+            "description": "Lecture detail, must be enrolled.",
+            "url": "{{baseUrl}}/api/learning/lectures/{{lectureId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403/404', function () { pm.expect([200,400,401,403,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/learning/quizzes/:quizId",
+          "request": {
+            "method": "GET",
+            "description": "Quiz detail, must be enrolled.",
+            "url": "{{baseUrl}}/api/learning/quizzes/{{quizId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403/404', function () { pm.expect([200,400,401,403,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/learning/quizzes/:quizId/submit",
+          "request": {
+            "method": "POST",
+            "description": "Submit quiz answers.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"submittedAnswers\": [1,2]\n}"
+            },
+            "url": "{{baseUrl}}/api/learning/quizzes/{{quizId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403/404', function () { pm.expect([200,400,401,403,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "POST /api/reviews (JWT)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "method": "POST",
+            "description": "Submit review (must be purchased, one review per user/course).",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": {{courseId}},\n  \"rating\": 5,\n  \"comment\": \"Khoa hoc rat chat luong\"\n}"
+            },
+            "url": "{{baseUrl}}/api/reviews"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201/400/401/403/404', function () { pm.expect([201,400,401,403,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/reviews/course/:courseId",
+          "request": {
+            "method": "GET",
+            "description": "Get course reviews and summary.",
+            "url": "{{baseUrl}}/api/reviews/course/{{courseId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400', function () { pm.expect([200,400]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users Profile (JWT)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{accessToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "GET /api/users/me",
+          "request": {
+            "method": "GET",
+            "description": "Get current user profile.",
+            "url": "{{baseUrl}}/api/users/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/401/404', function () { pm.expect([200,401,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /api/users/profile",
+          "request": {
+            "method": "PUT",
+            "description": "Update profile fields.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Nguyen Van A\",\n  \"avatar\": \"https://example.com/avatar.jpg\",\n  \"bio\": \"Mobile developer\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/profile"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/401/404', function () { pm.expect([200,401,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/users/send-update-otp",
+          "request": {
+            "method": "POST",
+            "description": "Send OTP for sensitive update.",
+            "url": "{{baseUrl}}/api/users/send-update-otp"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/401/404', function () { pm.expect([200,401,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /api/users/update-sensitive",
+          "request": {
+            "method": "PUT",
+            "description": "Update sensitive info with OTP.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otp\": \"123456\",\n  \"newPassword\": \"newpass123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/update-sensitive"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/404', function () { pm.expect([200,400,401,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Wishlist (JWT)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{accessToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "POST /api/wishlist/toggle",
+          "request": {
+            "method": "POST",
+            "description": "Toggle wishlist item.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": {{courseId}}\n}"
+            },
+            "url": "{{baseUrl}}/api/wishlist/toggle"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/404', function () { pm.expect([200,400,401,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/wishlist",
+          "request": {
+            "method": "GET",
+            "description": "Get wishlist.",
+            "url": "{{baseUrl}}/api/wishlist"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/401', function () { pm.expect([200,401]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Categories + Tags",
+      "item": [
+        {
+          "name": "GET /api/categories",
+          "request": {
+            "method": "GET",
+            "description": "Get categories.",
+            "url": "{{baseUrl}}/api/categories"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/categories",
+          "request": {
+            "method": "POST",
+            "description": "Create category.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Lap trinh Web\",\n  \"description\": \"Xay dung website hien dai\"\n}"
+            },
+            "url": "{{baseUrl}}/api/categories"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201/400', function () { pm.expect([201,400]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/tags",
+          "request": {
+            "method": "GET",
+            "description": "Get tags.",
+            "url": "{{baseUrl}}/api/tags"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
