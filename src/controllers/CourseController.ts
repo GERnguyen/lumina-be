@@ -393,6 +393,61 @@ export class CourseController {
     }
   };
 
+  deletePendingCourse = async (
+    req: AuthenticatedRequest & { params: AdminCourseParams },
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const courseId = Number(req.params.courseId);
+      if (Number.isNaN(courseId)) {
+        res.status(400).json({ message: "Invalid course id." });
+        return;
+      }
+
+      const actorId = req.user?.userId;
+      const actorRole = req.user?.role;
+
+      if (!actorId || !actorRole) {
+        res.status(401).json({ message: "Unauthorized." });
+        return;
+      }
+
+      await this.service.deletePendingCourseByActor(
+        courseId,
+        actorId,
+        actorRole,
+      );
+      res.status(204).send();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to delete pending course.";
+
+      if (message === "FORBIDDEN_NOT_INSTRUCTOR_COURSE") {
+        res.status(403).json({ message: "Forbidden." });
+        return;
+      }
+
+      if (message === "ONLY_PENDING_COURSE_CAN_BE_DELETED") {
+        res.status(400).json({
+          message: "Only pending courses can be deleted.",
+        });
+        return;
+      }
+
+      if (message === "CANNOT_DELETE_COURSE_WITH_ORDERS") {
+        res.status(400).json({
+          message: "Cannot delete a course that already has orders.",
+        });
+        return;
+      }
+
+      const statusCode = message === "Course not found" ? 404 : 500;
+      res.status(statusCode).json({ message });
+    }
+  };
+
   getPendingCoursesForAdmin = async (
     _req: AuthenticatedRequest,
     res: Response,

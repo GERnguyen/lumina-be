@@ -7,7 +7,8 @@
     "dev": "nodemon --watch src --exec ts-node src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "seed": "ts-node src/database/seeds/main.seed.ts"
+    "seed": "ts-node src/database/seeds/main.seed.ts",
+    "seed:extra": "ts-node src/database/seeds/extra.seed.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

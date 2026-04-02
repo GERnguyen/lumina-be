@@ -276,6 +276,55 @@ export class CourseService {
     return dataSourceCourseRepository.save(course);
   }
 
+  async deletePendingCourseByActor(
+    courseId: number,
+    actorId: number,
+    actorRole: string,
+  ): Promise<void> {
+    const dataSourceCourseRepository = AppDataSource.getRepository(Course);
+
+    const course = await dataSourceCourseRepository.findOne({
+      where: { id: courseId },
+      relations: {
+        instructor: true,
+        orderDetails: true,
+      },
+      select: {
+        id: true,
+        isActive: true,
+        publishedAt: true,
+        instructor: {
+          id: true,
+        },
+        orderDetails: {
+          id: true,
+        },
+      },
+    });
+
+    if (!course) {
+      throw new Error("Course not found");
+    }
+
+    if (course.isActive) {
+      throw new Error("ONLY_PENDING_COURSE_CAN_BE_DELETED");
+    }
+
+    if (course.orderDetails.length > 0) {
+      throw new Error("CANNOT_DELETE_COURSE_WITH_ORDERS");
+    }
+
+    const normalizedRole = actorRole.trim().toLowerCase();
+    const isAdmin = normalizedRole === "admin";
+    const isOwnerInstructor = course.instructor.id === actorId;
+
+    if (!isAdmin && !isOwnerInstructor) {
+      throw new Error("FORBIDDEN_NOT_INSTRUCTOR_COURSE");
+    }
+
+    await dataSourceCourseRepository.remove(course);
+  }
+
   async getPendingCoursesForAdmin(): Promise<Course[]> {
     return this.courseRepo.findPendingCoursesForAdmin();
   }

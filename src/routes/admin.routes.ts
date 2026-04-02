@@ -10,6 +10,7 @@ adminRoutes.use(requireRole(["admin"]));
 
 adminRoutes.get("/users", courseController.getUsersForAdmin);
 adminRoutes.get("/courses/pending", courseController.getPendingCoursesForAdmin);
+adminRoutes.delete("/courses/:courseId", courseController.deletePendingCourse);
 adminRoutes.patch(
   "/courses/:courseId/approve",
   courseController.approveCourseForAdmin,

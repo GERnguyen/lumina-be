@@ -19,6 +19,10 @@ instructorRoutes.put(
   "/courses/:courseId",
   courseController.updateForInstructor,
 );
+instructorRoutes.delete(
+  "/courses/:courseId",
+  courseController.deletePendingCourse,
+);
 instructorRoutes.get(
   "/courses/:courseId/students",
   courseController.getStudentsForInstructor,
