@@ -11,6 +11,9 @@ import {
 } from "../repositories/CategoryRepository";
 import { tagRepository, TagRepository } from "../repositories/TagRepository";
 import { userRepository, UserRepository } from "../repositories/UserRepository";
+import { AppDataSource } from "../data-source";
+import { Course } from "../entities/Course";
+import { Enrollment } from "../entities/Enrollment";
 
 export interface CreateCourseInput {
   title: string;
@@ -20,6 +23,19 @@ export interface CreateCourseInput {
   categoryId?: number;
   instructorId: number;
   tags?: string[];
+}
+
+export interface InstructorStudentProgressItem {
+  enrollmentId: number;
+  progressPercent: number;
+  enrolledAt: Date;
+  completedAt?: Date;
+  student: {
+    id: number;
+    email: string;
+    fullName: string | null;
+    avatar: string | null;
+  };
 }
 
 export class CourseService {
@@ -101,6 +117,82 @@ export class CourseService {
     };
 
     return this.courseRepo.createCourse(createPayload);
+  }
+
+  async getStudentsForInstructor(
+    instructorId: number,
+    courseId: number,
+  ): Promise<InstructorStudentProgressItem[]> {
+    const dataSourceCourseRepository = AppDataSource.getRepository(Course);
+    const enrollmentDataSourceRepository =
+      AppDataSource.getRepository(Enrollment);
+
+    const course = await dataSourceCourseRepository.findOne({
+      where: { id: courseId },
+      relations: {
+        instructor: true,
+      },
+      select: {
+        id: true,
+        instructor: {
+          id: true,
+        },
+      },
+    });
+
+    if (!course) {
+      throw new Error("Course not found");
+    }
+
+    if (course.instructor.id !== instructorId) {
+      throw new Error("FORBIDDEN_NOT_INSTRUCTOR_COURSE");
+    }
+
+    const enrollments = await enrollmentDataSourceRepository.find({
+      where: {
+        course: { id: courseId },
+      },
+      relations: {
+        user: {
+          profile: true,
+        },
+      },
+      order: {
+        enrolledAt: "DESC",
+      },
+    });
+
+    return enrollments.map((enrollment) => ({
+      enrollmentId: enrollment.id,
+      progressPercent: Number(enrollment.progressPercent),
+      enrolledAt: enrollment.enrolledAt,
+      completedAt: enrollment.completedAt,
+      student: {
+        id: enrollment.user.id,
+        email: enrollment.user.email,
+        fullName: enrollment.user.profile?.fullName ?? null,
+        avatar: enrollment.user.profile?.avatar ?? null,
+      },
+    }));
+  }
+
+  async approveCourse(courseId: number): Promise<Course> {
+    const dataSourceCourseRepository = AppDataSource.getRepository(Course);
+
+    const course = await dataSourceCourseRepository.findOne({
+      where: { id: courseId },
+    });
+
+    if (!course) {
+      throw new Error("Course not found");
+    }
+
+    course.isActive = true;
+    if (!course.publishedAt) {
+      course.publishedAt = new Date();
+    }
+
+    return dataSourceCourseRepository.save(course);
   }
 }
 

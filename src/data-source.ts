@@ -9,12 +9,14 @@ import { Coupon } from "./entities/Coupon";
 import { Course } from "./entities/Course";
 import { Enrollment } from "./entities/Enrollment";
 import { Lecture } from "./entities/Lecture";
+import { LectureCompletion } from "./entities/LectureCompletion";
 import { OtpRecord } from "./entities/OtpRecord";
 import { Order } from "./entities/Order";
 import { OrderDetail } from "./entities/OrderDetail";
 import { Profile } from "./entities/Profile";
 import { Question } from "./entities/Question";
 import { Quiz } from "./entities/Quiz";
+import { QuizAttempt } from "./entities/QuizAttempt";
 import { Review } from "./entities/Review";
 import { Section } from "./entities/Section";
 import { Tag } from "./entities/Tag";
@@ -37,7 +39,9 @@ export const AppDataSource = new DataSource({
     Course,
     Section,
     Lecture,
+    LectureCompletion,
     Quiz,
+    QuizAttempt,
     Question,
     Answer,
     Cart,

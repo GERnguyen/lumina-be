@@ -62,7 +62,7 @@ export class OrderService {
     });
   }
 
-  async checkout(userId: number, usePoints = false): Promise<Order> {
+  async checkout(userId: number, useRewardPoints = false): Promise<Order> {
     const pendingOrder = await AppDataSource.manager.transaction(
       async (manager) => {
         const userRepository = manager.getRepository(User);
@@ -105,13 +105,17 @@ export class OrderService {
           return total + Number(item.unitPrice) * item.quantity;
         }, 0);
 
+        let discountAmount = 0;
         let finalAmount = totalAmount;
-        if (usePoints) {
-          finalAmount = Math.max(
-            totalAmount - (user.rewardPoints ?? 0) * 1000,
-            0,
-          );
-          user.rewardPoints = 0;
+
+        if (useRewardPoints && (user.rewardPoints ?? 0) > 0) {
+          const availablePoints = user.rewardPoints ?? 0;
+          const maxUsablePoints = Math.floor(totalAmount / 1000);
+          const usedPoints = Math.min(availablePoints, maxUsablePoints);
+
+          discountAmount = usedPoints * 1000;
+          finalAmount = Math.max(totalAmount - discountAmount, 0);
+          user.rewardPoints = availablePoints - usedPoints;
           await userRepository.save(user);
         }
 
@@ -119,6 +123,7 @@ export class OrderService {
           user,
           status: OrderStatus.PENDING,
           totalAmount: finalAmount,
+          discountAmount,
           paymentMethod: "mock",
         });
 
@@ -206,28 +211,26 @@ export class OrderService {
             throw new Error("Order is not in pending state");
           }
 
-          const originalTotalPrice = Number(order.totalAmount);
-          let finalPrice = originalTotalPrice;
-          let pointsDeducted = 0;
+          if (useRewardPoints && Number(order.discountAmount ?? 0) <= 0) {
+            const payableBeforeDiscount = Number(order.totalAmount);
+            const availablePoints = user.rewardPoints ?? 0;
+            const maxUsablePoints = Math.floor(payableBeforeDiscount / 1000);
+            const usedPoints = Math.min(availablePoints, maxUsablePoints);
 
-          if (useRewardPoints && (user.rewardPoints ?? 0) > 0) {
-            const discountAmount = (user.rewardPoints ?? 0) * 1000;
-            finalPrice = Math.max(0, originalTotalPrice - discountAmount);
-            pointsDeducted = Math.ceil(
-              (originalTotalPrice - finalPrice) / 1000,
+            const appliedDiscount = usedPoints * 1000;
+            order.discountAmount = appliedDiscount;
+            order.totalAmount = Math.max(
+              payableBeforeDiscount - appliedDiscount,
+              0,
             );
 
-            if (pointsDeducted > 0) {
-              user.rewardPoints = Math.max(
-                0,
-                (user.rewardPoints ?? 0) - pointsDeducted,
-              );
+            if (usedPoints > 0) {
+              user.rewardPoints = availablePoints - usedPoints;
               await userRepository.save(user);
             }
           }
 
-          order.discountAmount = originalTotalPrice - finalPrice;
-          order.totalAmount = finalPrice;
+          const finalPrice = Number(order.totalAmount);
 
           let paymentSuccess = false;
           try {

@@ -104,7 +104,7 @@ export class ReviewService {
         throw new Error("User not found");
       }
 
-      const rewardPointsAdded = 100;
+      const rewardPointsAdded = 50;
       user.rewardPoints = (user.rewardPoints ?? 0) + rewardPointsAdded;
       await userRepository.save(user);
 

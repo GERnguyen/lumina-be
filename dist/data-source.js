@@ -15,12 +15,14 @@ const Coupon_1 = require("./entities/Coupon");
 const Course_1 = require("./entities/Course");
 const Enrollment_1 = require("./entities/Enrollment");
 const Lecture_1 = require("./entities/Lecture");
+const LectureCompletion_1 = require("./entities/LectureCompletion");
 const OtpRecord_1 = require("./entities/OtpRecord");
 const Order_1 = require("./entities/Order");
 const OrderDetail_1 = require("./entities/OrderDetail");
 const Profile_1 = require("./entities/Profile");
 const Question_1 = require("./entities/Question");
 const Quiz_1 = require("./entities/Quiz");
+const QuizAttempt_1 = require("./entities/QuizAttempt");
 const Review_1 = require("./entities/Review");
 const Section_1 = require("./entities/Section");
 const Tag_1 = require("./entities/Tag");
@@ -41,7 +43,9 @@ exports.AppDataSource = new typeorm_1.DataSource({
         Course_1.Course,
         Section_1.Section,
         Lecture_1.Lecture,
+        LectureCompletion_1.LectureCompletion,
         Quiz_1.Quiz,
+        QuizAttempt_1.QuizAttempt,
         Question_1.Question,
         Answer_1.Answer,
         Cart_1.Cart,

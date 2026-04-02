@@ -2,6 +2,8 @@ import { Repository } from "typeorm";
 import { AppDataSource } from "../data-source";
 import { Quiz } from "../entities/Quiz";
 
+export const quizRepository = AppDataSource.getRepository(Quiz);
+
 export interface QuizCourseContext {
   quizId: number;
   courseId: number;
@@ -10,8 +12,8 @@ export interface QuizCourseContext {
 export class QuizRepository {
   private readonly repository: Repository<Quiz>;
 
-  constructor() {
-    this.repository = AppDataSource.getRepository(Quiz);
+  constructor(repository: Repository<Quiz>) {
+    this.repository = repository;
   }
 
   async findQuizCourseContext(
@@ -47,4 +49,4 @@ export class QuizRepository {
   }
 }
 
-export const quizRepository = new QuizRepository();
+export const quizReadRepository = new QuizRepository(quizRepository);

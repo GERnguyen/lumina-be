@@ -11,6 +11,8 @@
     { "key": "courseId", "value": "1" },
     { "key": "lectureId", "value": "1" },
     { "key": "quizId", "value": "1" },
+    { "key": "questionId", "value": "1" },
+    { "key": "sectionId", "value": "1" },
     { "key": "orderId", "value": "1" },
     { "key": "categoryId", "value": "1" }
   ],
@@ -74,11 +76,11 @@
           "name": "POST /api/auth/register",
           "request": {
             "method": "POST",
-            "description": "Register account with OTP.",
+            "description": "Register account with OTP. Optional role: student or instructor (default student).",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"12345678\",\n  \"fullName\": \"Nguyen Van A\",\n  \"otp\": \"123456\"\n}"
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"12345678\",\n  \"fullName\": \"Nguyen Van A\",\n  \"otp\": \"123456\",\n  \"role\": \"instructor\"\n}"
             },
             "url": "{{baseUrl}}/api/auth/register"
           },
@@ -279,11 +281,21 @@
           "name": "POST /api/courses",
           "request": {
             "method": "POST",
-            "description": "Create course.",
+            "description": "Create course in pending state (isActive=false). Requires instructor/admin token; owner is derived from JWT and course must be approved by admin.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"React Native Masterclass\",\n  \"slug\": \"react-native-masterclass\",\n  \"instructorId\": 2,\n  \"description\": \"Course description\",\n  \"categoryId\": 1,\n  \"price\": 790000,\n  \"tags\": [\"mobile\", \"react\"]\n}"
+              "raw": "{\n  \"title\": \"React Native Masterclass\",\n  \"slug\": \"react-native-masterclass\",\n  \"description\": \"Course description\",\n  \"categoryId\": 1,\n  \"price\": 790000,\n  \"tags\": [\"mobile\", \"react\"]\n}"
             },
             "url": "{{baseUrl}}/api/courses"
           },
@@ -293,8 +305,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status is 201/400/404', function () {",
-                  "  pm.expect([201,400,404]).to.include(pm.response.code);",
+                  "pm.test('Status is 201/400/401/403/404', function () {",
+                  "  pm.expect([201,400,401,403,404]).to.include(pm.response.code);",
                   "});"
                 ]
               }
@@ -427,9 +439,12 @@
           "name": "POST /api/orders/checkout",
           "request": {
             "method": "POST",
-            "description": "Create pending order from cart. usePoints is optional.",
+            "description": "Create pending order from cart. useRewardPoints is optional.",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"usePoints\": false\n}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"useRewardPoints\": false\n}"
+            },
             "url": "{{baseUrl}}/api/orders/checkout"
           },
           "event": [
@@ -569,9 +584,28 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"submittedAnswers\": [1,2]\n}"
+              "raw": "{\n  \"selectedAnswerIds\": [1,2]\n}"
             },
             "url": "{{baseUrl}}/api/learning/quizzes/{{quizId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403/404', function () { pm.expect([200,400,401,403,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/learning/lectures/:lectureId/complete",
+          "request": {
+            "method": "POST",
+            "description": "Mark lecture as completed and update enrollment progress.",
+            "url": "{{baseUrl}}/api/learning/lectures/{{lectureId}}/complete"
           },
           "event": [
             {
@@ -785,6 +819,458 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status is 200/401', function () { pm.expect([200,401]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Instructor - Sections (JWT)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{accessToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "POST /api/instructor/courses/:courseId/sections",
+          "request": {
+            "method": "POST",
+            "description": "Create a new section for a course. Requires JWT.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Chuong 1: Gioi thieu\",\n  \"orderIndex\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/instructor/courses/{{courseId}}/sections"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201/400/401/404', function () {",
+                  "  pm.expect([201,400,401,404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/instructor/courses/:courseId/sections",
+          "request": {
+            "method": "GET",
+            "description": "Get all sections by course, ordered by orderIndex ASC. Requires JWT.",
+            "url": "{{baseUrl}}/api/instructor/courses/{{courseId}}/sections"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403', function () {",
+                  "  pm.expect([200,400,401,403]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /api/instructor/sections/:sectionId",
+          "request": {
+            "method": "PUT",
+            "description": "Update section title and orderIndex. Requires JWT.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Chuong 1: Cap nhat\",\n  \"orderIndex\": 2\n}"
+            },
+            "url": "{{baseUrl}}/api/instructor/sections/{{sectionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403/404', function () {",
+                  "  pm.expect([200,400,401,403,404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /api/instructor/sections/:sectionId",
+          "request": {
+            "method": "DELETE",
+            "description": "Delete section by id. Requires JWT.",
+            "url": "{{baseUrl}}/api/instructor/sections/{{sectionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403/404', function () {",
+                  "  pm.expect([200,400,401,403,404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/instructor/courses/:courseId/students",
+          "request": {
+            "method": "GET",
+            "description": "Get enrolled students and progress for an instructor-owned course.",
+            "url": "{{baseUrl}}/api/instructor/courses/{{courseId}}/students"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403/404', function () {",
+                  "  pm.expect([200,400,401,403,404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/instructor/sections/:sectionId/lectures",
+          "request": {
+            "method": "POST",
+            "description": "Create lecture inside a section.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Lecture 1\",\n  \"contentText\": \"Noi dung bai hoc\",\n  \"orderIndex\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/instructor/sections/{{sectionId}}/lectures"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201/400/401/403/404', function () {",
+                  "  pm.expect([201,400,401,403,404]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.id) pm.collectionVariables.set('lectureId', String(json.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/instructor/sections/:sectionId/lectures",
+          "request": {
+            "method": "GET",
+            "description": "Get lectures by section.",
+            "url": "{{baseUrl}}/api/instructor/sections/{{sectionId}}/lectures"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403', function () {",
+                  "  pm.expect([200,400,401,403]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /api/instructor/lectures/:lectureId",
+          "request": {
+            "method": "PUT",
+            "description": "Update lecture content.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Lecture 1 Updated\",\n  \"contentText\": \"Noi dung moi\",\n  \"orderIndex\": 2\n}"
+            },
+            "url": "{{baseUrl}}/api/instructor/lectures/{{lectureId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403/404', function () {",
+                  "  pm.expect([200,400,401,403,404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /api/instructor/lectures/:lectureId",
+          "request": {
+            "method": "DELETE",
+            "description": "Delete lecture by id.",
+            "url": "{{baseUrl}}/api/instructor/lectures/{{lectureId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403/404', function () {",
+                  "  pm.expect([200,400,401,403,404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/instructor/sections/:sectionId/quizzes",
+          "request": {
+            "method": "POST",
+            "description": "Create quiz in a section.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Quiz chuong 1\"\n}"
+            },
+            "url": "{{baseUrl}}/api/instructor/sections/{{sectionId}}/quizzes"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201/400/401/403/404', function () {",
+                  "  pm.expect([201,400,401,403,404]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.id) pm.collectionVariables.set('quizId', String(json.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/instructor/sections/:sectionId/quizzes",
+          "request": {
+            "method": "GET",
+            "description": "Get quizzes by section.",
+            "url": "{{baseUrl}}/api/instructor/sections/{{sectionId}}/quizzes"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403', function () {",
+                  "  pm.expect([200,400,401,403]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /api/instructor/quizzes/:quizId",
+          "request": {
+            "method": "PUT",
+            "description": "Update quiz title.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Quiz chuong 1 cap nhat\"\n}"
+            },
+            "url": "{{baseUrl}}/api/instructor/quizzes/{{quizId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403/404', function () {",
+                  "  pm.expect([200,400,401,403,404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /api/instructor/quizzes/:quizId",
+          "request": {
+            "method": "DELETE",
+            "description": "Delete quiz by id.",
+            "url": "{{baseUrl}}/api/instructor/quizzes/{{quizId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403/404', function () {",
+                  "  pm.expect([200,400,401,403,404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/instructor/quizzes/:quizId/questions",
+          "request": {
+            "method": "POST",
+            "description": "Create question with answer list.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"2 + 2 = ?\",\n  \"answers\": [\n    { \"content\": \"3\", \"isCorrect\": false },\n    { \"content\": \"4\", \"isCorrect\": true }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/instructor/quizzes/{{quizId}}/questions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201/400/401/403/404', function () {",
+                  "  pm.expect([201,400,401,403,404]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.id) pm.collectionVariables.set('questionId', String(json.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/instructor/quizzes/:quizId/questions",
+          "request": {
+            "method": "GET",
+            "description": "Get questions and answers by quiz.",
+            "url": "{{baseUrl}}/api/instructor/quizzes/{{quizId}}/questions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403', function () {",
+                  "  pm.expect([200,400,401,403]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /api/instructor/questions/:questionId",
+          "request": {
+            "method": "PUT",
+            "description": "Update question and replace full answers list.",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"3 + 3 = ?\",\n  \"answers\": [\n    { \"content\": \"5\", \"isCorrect\": false },\n    { \"content\": \"6\", \"isCorrect\": true }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/instructor/questions/{{questionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403/404', function () {",
+                  "  pm.expect([200,400,401,403,404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /api/instructor/questions/:questionId",
+          "request": {
+            "method": "DELETE",
+            "description": "Delete question by id.",
+            "url": "{{baseUrl}}/api/instructor/questions/{{questionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403/404', function () {",
+                  "  pm.expect([200,400,401,403,404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin (JWT)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{accessToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "PATCH /api/admin/courses/:courseId/approve",
+          "request": {
+            "method": "PATCH",
+            "description": "Approve course publication (admin only).",
+            "url": "{{baseUrl}}/api/admin/courses/{{courseId}}/approve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200/400/401/403/404', function () {",
+                  "  pm.expect([200,400,401,403,404]).to.include(pm.response.code);",
+                  "});"
                 ]
               }
             }

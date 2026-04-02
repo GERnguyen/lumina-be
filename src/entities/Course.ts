@@ -61,7 +61,7 @@ export class Course {
   @Column({ name: "review_count", type: "int", default: 0 })
   reviewCount!: number;
 
-  @Column({ name: "is_active", type: "boolean", default: true })
+  @Column({ name: "is_active", type: "boolean", default: false })
   isActive!: boolean;
 
   @Column({ name: "published_at", type: "datetime", nullable: true })

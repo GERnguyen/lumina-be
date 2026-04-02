@@ -15,6 +15,7 @@ interface RegisterBody {
   password: string;
   fullName: string;
   otp: string;
+  role?: string;
 }
 
 interface LoginBody {
@@ -94,6 +95,7 @@ export class AuthController {
         password: req.body.password,
         fullName: req.body.fullName,
         otp: req.body.otp,
+        role: req.body.role,
       };
 
       if (
@@ -119,7 +121,8 @@ export class AuthController {
         error instanceof Error ? error.message : "Internal server error.";
       const statusCode =
         message === "Email already exists." ||
-        message === "Invalid or expired OTP"
+        message === "Invalid or expired OTP" ||
+        message === "Invalid role. Allowed roles: student, instructor"
           ? 400
           : 500;
 

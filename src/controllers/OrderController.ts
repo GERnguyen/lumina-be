@@ -7,7 +7,7 @@ interface OrderParams {
 }
 
 interface CheckoutBody {
-  usePoints?: boolean;
+  useRewardPoints?: boolean;
 }
 
 interface ConfirmPaymentBody {
@@ -82,8 +82,8 @@ export class OrderController {
         return;
       }
 
-      const usePoints = req.body?.usePoints === true;
-      const order = await this.service.checkout(userId, usePoints);
+      const useRewardPoints = req.body?.useRewardPoints === true;
+      const order = await this.service.checkout(userId, useRewardPoints);
       res.status(200).json(order);
     } catch (error) {
       const message =

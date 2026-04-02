@@ -60,7 +60,13 @@ __decorate([
     __metadata("design:type", Number)
 ], Course.prototype, "discountPercent", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: "average_rating", type: "decimal", precision: 3, scale: 2, default: 0 }),
+    (0, typeorm_1.Column)({
+        name: "average_rating",
+        type: "decimal",
+        precision: 3,
+        scale: 2,
+        default: 0,
+    }),
     __metadata("design:type", Number)
 ], Course.prototype, "averageRating", void 0);
 __decorate([
@@ -68,7 +74,7 @@ __decorate([
     __metadata("design:type", Number)
 ], Course.prototype, "reviewCount", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: "is_active", type: "boolean", default: true }),
+    (0, typeorm_1.Column)({ name: "is_active", type: "boolean", default: false }),
     __metadata("design:type", Boolean)
 ], Course.prototype, "isActive", void 0);
 __decorate([

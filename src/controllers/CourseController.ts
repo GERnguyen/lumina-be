@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { CourseFilters } from "../repositories/CourseRepository";
 import { courseService, CourseService } from "../services/CourseService";
-import { CreateCourseInput } from "../services/CourseService";
+import { AuthenticatedRequest } from "../middlewares/auth.middleware";
 
 interface CourseQuery {
   categoryId?: string;
@@ -16,6 +16,23 @@ interface CourseQuery {
 
 interface CourseParams {
   id: string;
+}
+
+interface InstructorCourseParams {
+  courseId: string;
+}
+
+interface AdminCourseParams {
+  courseId: string;
+}
+
+interface CreateCourseRequestBody {
+  title: string;
+  slug: string;
+  description?: string;
+  categoryId?: number;
+  price?: number;
+  tags?: string[];
 }
 
 export class CourseController {
@@ -121,24 +138,24 @@ export class CourseController {
   };
 
   create = async (
-    req: Request<Record<string, never>, unknown, CreateCourseInput>,
+    req: AuthenticatedRequest & {
+      body: CreateCourseRequestBody;
+    },
     res: Response,
   ): Promise<void> => {
     try {
-      const {
-        title,
-        slug,
-        instructorId,
-        description,
-        categoryId,
-        price,
-        tags,
-      } = req.body;
+      const { title, slug, description, categoryId, price, tags } = req.body;
+      const instructorId = req.user?.userId;
 
-      if (!title || !slug || !instructorId) {
+      if (!title || !slug) {
         res.status(400).json({
-          message: "title, slug and instructorId are required.",
+          message: "title and slug are required.",
         });
+        return;
+      }
+
+      if (!instructorId) {
+        res.status(401).json({ message: "Unauthorized." });
         return;
       }
 
@@ -162,6 +179,70 @@ export class CourseController {
           : message === "Only Instructors or Admins can be assigned to a course"
             ? 400
             : 500;
+
+      res.status(statusCode).json({ message });
+    }
+  };
+
+  getStudentsForInstructor = async (
+    req: AuthenticatedRequest & { params: InstructorCourseParams },
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const instructorId = req.user?.userId;
+
+      if (!instructorId) {
+        res.status(401).json({ message: "Unauthorized." });
+        return;
+      }
+
+      const courseId = Number(req.params.courseId);
+      if (Number.isNaN(courseId)) {
+        res.status(400).json({ message: "Invalid course id." });
+        return;
+      }
+
+      const students = await this.service.getStudentsForInstructor(
+        instructorId,
+        courseId,
+      );
+
+      res.status(200).json(students);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch students progress.";
+
+      if (message === "FORBIDDEN_NOT_INSTRUCTOR_COURSE") {
+        res
+          .status(403)
+          .json({ message: "Ban khong co quyen xem khoa hoc nay!" });
+        return;
+      }
+
+      const statusCode = message === "Course not found" ? 404 : 500;
+      res.status(statusCode).json({ message });
+    }
+  };
+
+  approveCourseForAdmin = async (
+    req: AuthenticatedRequest & { params: AdminCourseParams },
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const courseId = Number(req.params.courseId);
+      if (Number.isNaN(courseId)) {
+        res.status(400).json({ message: "Invalid course id." });
+        return;
+      }
+
+      const course = await this.service.approveCourse(courseId);
+      res.status(200).json(course);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to approve course.";
+      const statusCode = message === "Course not found" ? 404 : 500;
 
       res.status(statusCode).json({ message });
     }

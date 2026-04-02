@@ -15,6 +15,7 @@ export interface RegisterInput {
   password: string;
   fullName: string;
   otp: string;
+  role?: string;
 }
 
 export interface SendOtpInput {
@@ -87,12 +88,17 @@ export class AuthService {
       throw new Error("Invalid or expired OTP");
     }
 
+    const normalizedRole = (data.role ?? "student").trim().toLowerCase();
+    if (!["student", "instructor"].includes(normalizedRole)) {
+      throw new Error("Invalid role. Allowed roles: student, instructor");
+    }
+
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
 
     const user = new User();
     user.email = normalizedEmail;
     user.password = hashedPassword;
-    user.role = "student";
+    user.role = normalizedRole;
 
     const profile = new Profile();
     profile.fullName = data.fullName;

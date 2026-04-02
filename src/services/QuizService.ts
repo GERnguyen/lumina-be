@@ -1,5 +1,11 @@
 import { enrollmentRepository } from "../repositories/EnrollmentRepository";
-import { quizRepository } from "../repositories/QuizRepository";
+import { Quiz } from "../entities/Quiz";
+import { quizAttemptRepository } from "../repositories/QuizAttemptRepository";
+import {
+  quizReadRepository,
+  quizRepository,
+} from "../repositories/QuizRepository";
+import { sectionRepository } from "../repositories/SectionRepository";
 
 export interface QuizAnswerView {
   id: number;
@@ -26,11 +32,67 @@ export interface QuizSubmissionResult {
   totalQuestions: number;
   correctAnswers: number;
   score: number;
-  isPassed: boolean;
 }
 
 export class QuizService {
-  async getQuizDetail(userId: number, quizId: number): Promise<QuizDetailView> {
+  async createQuiz(sectionId: number, title: string): Promise<Quiz> {
+    const section = await sectionRepository.findOne({
+      where: { id: sectionId },
+      select: { id: true },
+    });
+
+    if (!section) {
+      throw new Error("Section not found");
+    }
+
+    const quiz = quizRepository.create({
+      title,
+      section,
+    });
+
+    return quizRepository.save(quiz);
+  }
+
+  async getQuizzesBySection(sectionId: number): Promise<Quiz[]> {
+    return quizRepository.find({
+      where: {
+        section: { id: sectionId },
+      },
+      order: {
+        orderIndex: "ASC",
+      },
+    });
+  }
+
+  async updateQuiz(quizId: number, title: string): Promise<Quiz> {
+    const quiz = await quizRepository.findOne({
+      where: { id: quizId },
+      relations: {
+        section: true,
+      },
+    });
+
+    if (!quiz) {
+      throw new Error("Quiz not found");
+    }
+
+    quiz.title = title;
+
+    return quizRepository.save(quiz);
+  }
+
+  async deleteQuiz(quizId: number): Promise<void> {
+    const deleteResult = await quizRepository.delete({ id: quizId });
+
+    if (!deleteResult.affected) {
+      throw new Error("Quiz not found");
+    }
+  }
+
+  async getQuizForStudent(
+    userId: number,
+    quizId: number,
+  ): Promise<QuizDetailView> {
     const quiz = await this.getAuthorizedQuiz(userId, quizId);
 
     return {
@@ -54,13 +116,13 @@ export class QuizService {
   async submitQuiz(
     userId: number,
     quizId: number,
-    submittedAnswers: number[],
+    selectedAnswerIds: number[],
   ): Promise<QuizSubmissionResult> {
     const quiz = await this.getAuthorizedQuiz(userId, quizId);
 
     const sanitizedSubmittedAnswers = Array.from(
       new Set(
-        submittedAnswers
+        selectedAnswerIds
           .map((answerId) => Number(answerId))
           .filter((answerId) => Number.isInteger(answerId) && answerId > 0),
       ),
@@ -70,17 +132,9 @@ export class QuizService {
     const totalQuestions = quiz.questions.length;
 
     const correctAnswers = quiz.questions.reduce((count, question) => {
-      const correctIds = question.answers
-        .filter((answer) => answer.isCorrect)
-        .map((answer) => answer.id);
-
-      const submittedForQuestion = question.answers
-        .map((answer) => answer.id)
-        .filter((id) => submittedSet.has(id));
-
+      const correctAnswer = question.answers.find((answer) => answer.isCorrect);
       const isQuestionCorrect =
-        submittedForQuestion.length === correctIds.length &&
-        correctIds.every((id) => submittedSet.has(id));
+        !!correctAnswer && submittedSet.has(correctAnswer.id);
 
       return isQuestionCorrect ? count + 1 : count;
     }, 0);
@@ -90,16 +144,25 @@ export class QuizService {
         ? 0
         : Math.round((correctAnswers / totalQuestions) * 10000) / 100;
 
+    const attempt = quizAttemptRepository.create({
+      user: { id: userId },
+      quiz: { id: quizId },
+      score,
+      totalQuestions,
+      correctAnswers,
+    });
+
+    await quizAttemptRepository.save(attempt);
+
     return {
       totalQuestions,
       correctAnswers,
       score,
-      isPassed: score >= 80,
     };
   }
 
   private async getAuthorizedQuiz(userId: number, quizId: number) {
-    const context = await quizRepository.findQuizCourseContext(quizId);
+    const context = await quizReadRepository.findQuizCourseContext(quizId);
 
     if (!context) {
       throw new Error("Quiz not found");
@@ -114,7 +177,8 @@ export class QuizService {
       throw new Error("FORBIDDEN_NOT_ENROLLED");
     }
 
-    const quiz = await quizRepository.findQuizWithQuestionsAndAnswers(quizId);
+    const quiz =
+      await quizReadRepository.findQuizWithQuestionsAndAnswers(quizId);
 
     if (!quiz) {
       throw new Error("Quiz not found");

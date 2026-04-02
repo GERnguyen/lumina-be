@@ -342,8 +342,8 @@ export class CourseRepository {
       instructor: input.instructor,
       category: input.category,
       tags: input.tags,
-      publishedAt: new Date(),
-      isActive: true,
+      publishedAt: undefined,
+      isActive: false,
     });
 
     const savedCourse = await this.repository.save(course);

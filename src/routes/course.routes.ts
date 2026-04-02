@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { courseController } from "../controllers/CourseController";
+import { authMiddleware } from "../middlewares/auth.middleware";
+import { requireRole } from "../middlewares/role.middleware";
 
 const courseRoutes = Router();
 
@@ -9,6 +11,11 @@ courseRoutes.get("/best-sellers", courseController.getBestSellers);
 courseRoutes.get("/top-discounted", courseController.getTopDiscounted);
 courseRoutes.get("/:id/similar", courseController.getSimilarCourses);
 courseRoutes.get("/:id", courseController.getById);
-courseRoutes.post("/", courseController.create);
+courseRoutes.post(
+  "/",
+  authMiddleware,
+  requireRole(["instructor", "admin"]),
+  courseController.create,
+);
 
 export default courseRoutes;
