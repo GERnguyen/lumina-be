@@ -19,9 +19,20 @@ export interface CreateCourseInput {
   title: string;
   slug: string;
   description?: string;
+  thumbnailUrl?: string;
   price?: number;
   categoryId?: number;
   instructorId: number;
+  tags?: string[];
+}
+
+export interface UpdateCourseInput {
+  title: string;
+  slug: string;
+  description?: string;
+  thumbnailUrl?: string;
+  price?: number;
+  categoryId?: number;
   tags?: string[];
 }
 
@@ -37,6 +48,8 @@ export interface InstructorStudentProgressItem {
     avatar: string | null;
   };
 }
+
+export type AdminUserRole = "student" | "instructor";
 
 export class CourseService {
   constructor(
@@ -68,6 +81,34 @@ export class CourseService {
 
   async getCourseById(id: number) {
     return this.courseRepo.findCourseById(id);
+  }
+
+  async getPublicCourseById(id: number) {
+    const course = await this.courseRepo.findCourseById(id);
+
+    if (!course || !course.isActive) {
+      return null;
+    }
+
+    return course;
+  }
+
+  async getCourseByIdForInstructorOrAdmin(
+    userId: number,
+    role: string,
+    courseId: number,
+  ) {
+    const normalizedRole = role.trim().toLowerCase();
+
+    if (normalizedRole === "admin") {
+      return this.courseRepo.findCourseById(courseId);
+    }
+
+    return this.courseRepo.findCourseByIdForInstructor(courseId, userId);
+  }
+
+  async getInstructorCourses(instructorId: number) {
+    return this.courseRepo.findCoursesByInstructor(instructorId);
   }
 
   async createCourse(input: CreateCourseInput) {
@@ -110,6 +151,7 @@ export class CourseService {
       title: input.title,
       slug: input.slug,
       description: input.description,
+      thumbnailUrl: input.thumbnailUrl,
       price: input.price,
       instructor: user,
       category: category ?? undefined,
@@ -117,6 +159,45 @@ export class CourseService {
     };
 
     return this.courseRepo.createCourse(createPayload);
+  }
+
+  async updateCourseForInstructor(
+    instructorId: number,
+    courseId: number,
+    input: UpdateCourseInput,
+  ) {
+    const category = input.categoryId
+      ? await this.categoryRepo.findById(input.categoryId)
+      : undefined;
+
+    const tagNames = Array.from(
+      new Set(
+        (input.tags ?? [])
+          .map((tag) => tag.trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    );
+
+    const tags = await Promise.all(
+      tagNames.map(async (name) => {
+        const existingTag = await this.tagRepo.findByName(name);
+        if (existingTag) {
+          return existingTag;
+        }
+
+        return this.tagRepo.createTag(name);
+      }),
+    );
+
+    return this.courseRepo.updateCourseByInstructor(courseId, instructorId, {
+      title: input.title,
+      slug: input.slug,
+      description: input.description,
+      thumbnailUrl: input.thumbnailUrl,
+      price: input.price,
+      category: category ?? undefined,
+      tags,
+    });
   }
 
   async getStudentsForInstructor(
@@ -193,6 +274,14 @@ export class CourseService {
     }
 
     return dataSourceCourseRepository.save(course);
+  }
+
+  async getPendingCoursesForAdmin(): Promise<Course[]> {
+    return this.courseRepo.findPendingCoursesForAdmin();
+  }
+
+  async getUsersForAdmin(role: AdminUserRole) {
+    return this.userRepo.findUsersByRole(role);
   }
 }
 

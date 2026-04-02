@@ -7,6 +7,9 @@ const adminRoutes = Router();
 
 adminRoutes.use(authMiddleware);
 adminRoutes.use(requireRole(["admin"]));
+
+adminRoutes.get("/users", courseController.getUsersForAdmin);
+adminRoutes.get("/courses/pending", courseController.getPendingCoursesForAdmin);
 adminRoutes.patch(
   "/courses/:courseId/approve",
   courseController.approveCourseForAdmin,

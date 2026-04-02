@@ -26,10 +26,25 @@ interface AdminCourseParams {
   courseId: string;
 }
 
+interface AdminUsersQuery {
+  role?: string;
+}
+
 interface CreateCourseRequestBody {
   title: string;
   slug: string;
   description?: string;
+  thumbnailUrl?: string;
+  categoryId?: number;
+  price?: number;
+  tags?: string[];
+}
+
+interface UpdateCourseRequestBody {
+  title: string;
+  slug: string;
+  description?: string;
+  thumbnailUrl?: string;
   categoryId?: number;
   price?: number;
   tags?: string[];
@@ -124,7 +139,43 @@ export class CourseController {
         return;
       }
 
-      const course = await this.service.getCourseById(courseId);
+      const course = await this.service.getPublicCourseById(courseId);
+
+      if (!course) {
+        res.status(404).json({ message: "Course not found." });
+        return;
+      }
+
+      res.status(200).json(course);
+    } catch (_error) {
+      res.status(500).json({ message: "Failed to fetch course detail." });
+    }
+  };
+
+  getDetailForInstructor = async (
+    req: AuthenticatedRequest & { params: InstructorCourseParams },
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const userId = req.user?.userId;
+      const role = req.user?.role;
+
+      if (!userId || !role) {
+        res.status(401).json({ message: "Unauthorized." });
+        return;
+      }
+
+      const courseId = Number(req.params.courseId);
+      if (Number.isNaN(courseId)) {
+        res.status(400).json({ message: "Invalid course id." });
+        return;
+      }
+
+      const course = await this.service.getCourseByIdForInstructorOrAdmin(
+        userId,
+        role,
+        courseId,
+      );
 
       if (!course) {
         res.status(404).json({ message: "Course not found." });
@@ -144,7 +195,15 @@ export class CourseController {
     res: Response,
   ): Promise<void> => {
     try {
-      const { title, slug, description, categoryId, price, tags } = req.body;
+      const {
+        title,
+        slug,
+        description,
+        thumbnailUrl,
+        categoryId,
+        price,
+        tags,
+      } = req.body;
       const instructorId = req.user?.userId;
 
       if (!title || !slug) {
@@ -164,6 +223,7 @@ export class CourseController {
         slug,
         instructorId,
         description,
+        thumbnailUrl,
         categoryId,
         price,
         tags,
@@ -180,6 +240,91 @@ export class CourseController {
             ? 400
             : 500;
 
+      res.status(statusCode).json({ message });
+    }
+  };
+
+  getMyCoursesForInstructor = async (
+    req: AuthenticatedRequest,
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const instructorId = req.user?.userId;
+
+      if (!instructorId) {
+        res.status(401).json({ message: "Unauthorized." });
+        return;
+      }
+
+      const courses = await this.service.getInstructorCourses(instructorId);
+      res.status(200).json(courses);
+    } catch (_error) {
+      res.status(500).json({ message: "Failed to fetch instructor courses." });
+    }
+  };
+
+  updateForInstructor = async (
+    req: AuthenticatedRequest & {
+      params: InstructorCourseParams;
+      body: UpdateCourseRequestBody;
+    },
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const instructorId = req.user?.userId;
+      if (!instructorId) {
+        res.status(401).json({ message: "Unauthorized." });
+        return;
+      }
+
+      const courseId = Number(req.params.courseId);
+      if (Number.isNaN(courseId)) {
+        res.status(400).json({ message: "Invalid course id." });
+        return;
+      }
+
+      const {
+        title,
+        slug,
+        description,
+        thumbnailUrl,
+        categoryId,
+        price,
+        tags,
+      } = req.body;
+
+      if (!title?.trim() || !slug?.trim()) {
+        res.status(400).json({ message: "title and slug are required." });
+        return;
+      }
+
+      const updatedCourse = await this.service.updateCourseForInstructor(
+        instructorId,
+        courseId,
+        {
+          title,
+          slug,
+          description,
+          thumbnailUrl,
+          categoryId,
+          price,
+          tags,
+        },
+      );
+
+      res.status(200).json(updatedCourse);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to update course.";
+
+      if (message === "FORBIDDEN_NOT_INSTRUCTOR_COURSE") {
+        res
+          .status(403)
+          .json({ message: "Ban khong co quyen sua khoa hoc nay!" });
+        return;
+      }
+
+      const statusCode = message === "Course not found" ? 404 : 500;
       res.status(statusCode).json({ message });
     }
   };
@@ -245,6 +390,41 @@ export class CourseController {
       const statusCode = message === "Course not found" ? 404 : 500;
 
       res.status(statusCode).json({ message });
+    }
+  };
+
+  getPendingCoursesForAdmin = async (
+    _req: AuthenticatedRequest,
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const courses = await this.service.getPendingCoursesForAdmin();
+      res.status(200).json(courses);
+    } catch (_error) {
+      res.status(500).json({ message: "Failed to fetch pending courses." });
+    }
+  };
+
+  getUsersForAdmin = async (
+    req: AuthenticatedRequest & {
+      query: AdminUsersQuery;
+    },
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const normalizedRole = req.query.role?.trim().toLowerCase();
+
+      if (normalizedRole !== "student" && normalizedRole !== "instructor") {
+        res.status(400).json({
+          message: "Invalid role. Allowed roles: student, instructor.",
+        });
+        return;
+      }
+
+      const users = await this.service.getUsersForAdmin(normalizedRole);
+      res.status(200).json(users);
+    } catch (_error) {
+      res.status(500).json({ message: "Failed to fetch users." });
     }
   };
 }

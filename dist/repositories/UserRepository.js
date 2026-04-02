@@ -26,6 +26,29 @@ class UserRepository {
     async save(user) {
         return this.repository.save(user);
     }
+    async findUsersByRole(role) {
+        return this.repository
+            .createQueryBuilder("user")
+            .leftJoinAndSelect("user.profile", "profile")
+            .select([
+            "user.id",
+            "user.email",
+            "user.role",
+            "user.phone",
+            "user.isActive",
+            "user.rewardPoints",
+            "user.createdAt",
+            "user.updatedAt",
+            "profile.id",
+            "profile.fullName",
+            "profile.avatar",
+            "profile.bio",
+            "profile.phoneNumber",
+        ])
+            .where("LOWER(user.role) = :role", { role: role.toLowerCase() })
+            .orderBy("user.createdAt", "DESC")
+            .getMany();
+    }
 }
 exports.UserRepository = UserRepository;
 exports.userRepository = new UserRepository();

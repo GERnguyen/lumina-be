@@ -84,8 +84,10 @@ class CourseRepository {
                 queryBuilder.orderBy("course.price", "DESC");
                 break;
             case "top_rated":
-                // Fallback sorting while average rating column is not available.
-                queryBuilder.orderBy("course.enrollmentCount", "DESC");
+                queryBuilder
+                    .orderBy("course.averageRating", "DESC")
+                    .addOrderBy("course.reviewCount", "DESC")
+                    .addOrderBy("course.enrollmentCount", "DESC");
                 break;
             default:
                 queryBuilder.orderBy("course.createdAt", "DESC");
@@ -251,6 +253,7 @@ class CourseRepository {
             .leftJoinAndSelect("course.tags", "tag")
             .leftJoinAndSelect("course.sections", "section")
             .leftJoinAndSelect("section.lectures", "lecture")
+            .leftJoinAndSelect("section.quizzes", "quiz")
             .select([
             "course.id",
             "course.title",
@@ -285,6 +288,10 @@ class CourseRepository {
             "lecture.contentText",
             "lecture.videoUrl",
             "lecture.orderIndex",
+            "quiz.id",
+            "quiz.title",
+            "quiz.description",
+            "quiz.orderIndex",
         ])
             .where("course.id = :id", { id })
             .orderBy("section.orderIndex", "ASC")
@@ -296,6 +303,7 @@ class CourseRepository {
             title: input.title,
             slug: input.slug,
             description: input.description,
+            thumbnailUrl: input.thumbnailUrl,
             price: input.price ?? 0,
             enrollmentCount: 0,
             discountPercent: 0,
@@ -311,6 +319,164 @@ class CourseRepository {
             throw new Error("Failed to load created course.");
         }
         return hydratedCourse;
+    }
+    async findCoursesByInstructor(instructorId) {
+        return this.repository
+            .createQueryBuilder("course")
+            .leftJoinAndSelect("course.category", "category")
+            .leftJoinAndSelect("course.instructor", "instructor")
+            .leftJoinAndSelect("instructor.profile", "profile")
+            .leftJoinAndSelect("course.tags", "tag")
+            .select([
+            "course.id",
+            "course.title",
+            "course.slug",
+            "course.description",
+            "course.thumbnailUrl",
+            "course.price",
+            "course.enrollmentCount",
+            "course.discountPercent",
+            "course.averageRating",
+            "course.reviewCount",
+            "course.isActive",
+            "course.publishedAt",
+            "course.createdAt",
+            "course.updatedAt",
+            "category.id",
+            "category.name",
+            "category.description",
+            "instructor.id",
+            "instructor.email",
+            "instructor.role",
+            "profile.id",
+            "profile.fullName",
+            "profile.avatar",
+            "tag.id",
+            "tag.name",
+        ])
+            .where("instructor.id = :instructorId", { instructorId })
+            .orderBy("course.createdAt", "DESC")
+            .getMany();
+    }
+    async updateCourseByInstructor(courseId, instructorId, input) {
+        const course = await this.repository.findOne({
+            where: { id: courseId },
+            relations: {
+                instructor: true,
+            },
+        });
+        if (!course) {
+            throw new Error("Course not found");
+        }
+        if (course.instructor.id !== instructorId) {
+            throw new Error("FORBIDDEN_NOT_INSTRUCTOR_COURSE");
+        }
+        course.title = input.title;
+        course.slug = input.slug;
+        course.description = input.description;
+        course.thumbnailUrl = input.thumbnailUrl;
+        course.price = input.price ?? 0;
+        course.category = input.category;
+        course.tags = input.tags;
+        const savedCourse = await this.repository.save(course);
+        const hydratedCourse = await this.findCourseById(savedCourse.id);
+        if (!hydratedCourse) {
+            throw new Error("Failed to load updated course.");
+        }
+        return hydratedCourse;
+    }
+    async findCourseByIdForInstructor(courseId, instructorId) {
+        return this.repository
+            .createQueryBuilder("course")
+            .leftJoinAndSelect("course.category", "category")
+            .leftJoinAndSelect("course.instructor", "instructor")
+            .leftJoinAndSelect("instructor.profile", "profile")
+            .leftJoinAndSelect("course.tags", "tag")
+            .leftJoinAndSelect("course.sections", "section")
+            .leftJoinAndSelect("section.lectures", "lecture")
+            .leftJoinAndSelect("section.quizzes", "quiz")
+            .select([
+            "course.id",
+            "course.title",
+            "course.slug",
+            "course.description",
+            "course.thumbnailUrl",
+            "course.price",
+            "course.enrollmentCount",
+            "course.discountPercent",
+            "course.averageRating",
+            "course.reviewCount",
+            "course.isActive",
+            "course.publishedAt",
+            "course.createdAt",
+            "course.updatedAt",
+            "category.id",
+            "category.name",
+            "category.description",
+            "instructor.id",
+            "instructor.email",
+            "instructor.role",
+            "profile.id",
+            "profile.fullName",
+            "profile.avatar",
+            "tag.id",
+            "tag.name",
+            "section.id",
+            "section.title",
+            "section.orderIndex",
+            "lecture.id",
+            "lecture.title",
+            "lecture.contentText",
+            "lecture.videoUrl",
+            "lecture.orderIndex",
+            "quiz.id",
+            "quiz.title",
+            "quiz.description",
+            "quiz.orderIndex",
+        ])
+            .where("course.id = :courseId", { courseId })
+            .andWhere("instructor.id = :instructorId", { instructorId })
+            .orderBy("section.orderIndex", "ASC")
+            .addOrderBy("lecture.orderIndex", "ASC")
+            .getOne();
+    }
+    async findPendingCoursesForAdmin() {
+        return this.repository
+            .createQueryBuilder("course")
+            .leftJoinAndSelect("course.category", "category")
+            .leftJoinAndSelect("course.instructor", "instructor")
+            .leftJoinAndSelect("instructor.profile", "profile")
+            .leftJoinAndSelect("course.tags", "tag")
+            .select([
+            "course.id",
+            "course.title",
+            "course.slug",
+            "course.description",
+            "course.thumbnailUrl",
+            "course.price",
+            "course.enrollmentCount",
+            "course.discountPercent",
+            "course.averageRating",
+            "course.reviewCount",
+            "course.isActive",
+            "course.publishedAt",
+            "course.createdAt",
+            "course.updatedAt",
+            "category.id",
+            "category.name",
+            "category.description",
+            "instructor.id",
+            "instructor.email",
+            "instructor.role",
+            "profile.id",
+            "profile.fullName",
+            "profile.avatar",
+            "tag.id",
+            "tag.name",
+        ])
+            .where("course.isActive = :isActive", { isActive: false })
+            .orderBy("course.createdAt", "DESC")
+            .getMany();
     }
 }
 exports.CourseRepository = CourseRepository;

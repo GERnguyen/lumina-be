@@ -12,8 +12,20 @@ const instructorRoutes = Router();
 instructorRoutes.use(authMiddleware);
 instructorRoutes.use(requireRole(["instructor", "admin"]));
 instructorRoutes.get(
+  "/courses/my-courses",
+  courseController.getMyCoursesForInstructor,
+);
+instructorRoutes.put(
+  "/courses/:courseId",
+  courseController.updateForInstructor,
+);
+instructorRoutes.get(
   "/courses/:courseId/students",
   courseController.getStudentsForInstructor,
+);
+instructorRoutes.get(
+  "/courses/:courseId/detail",
+  courseController.getDetailForInstructor,
 );
 instructorRoutes.post("/courses/:courseId/sections", sectionController.create);
 instructorRoutes.get(
