@@ -25,6 +25,10 @@ export class CartService {
       relations: {
         items: {
           course: {
+            category: true,
+            instructor: {
+              profile: true,
+            },
             tags: true,
           },
         },
@@ -45,6 +49,10 @@ export class CartService {
         relations: {
           items: {
             course: {
+              category: true,
+              instructor: {
+                profile: true,
+              },
               tags: true,
             },
           },
@@ -118,6 +126,10 @@ export class CartService {
       relations: {
         items: {
           course: {
+            category: true,
+            instructor: {
+              profile: true,
+            },
             tags: true,
           },
         },

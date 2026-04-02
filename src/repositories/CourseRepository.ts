@@ -63,6 +63,8 @@ export class CourseRepository {
         "course.price",
         "course.enrollmentCount",
         "course.discountPercent",
+        "course.averageRating",
+        "course.reviewCount",
         "course.isActive",
         "course.publishedAt",
         "course.createdAt",
@@ -124,8 +126,10 @@ export class CourseRepository {
         queryBuilder.orderBy("course.price", "DESC");
         break;
       case "top_rated":
-        // Fallback sorting while average rating column is not available.
-        queryBuilder.orderBy("course.enrollmentCount", "DESC");
+        queryBuilder
+          .orderBy("course.averageRating", "DESC")
+          .addOrderBy("course.reviewCount", "DESC")
+          .addOrderBy("course.enrollmentCount", "DESC");
         break;
       default:
         queryBuilder.orderBy("course.createdAt", "DESC");
@@ -163,6 +167,8 @@ export class CourseRepository {
         "course.price",
         "course.enrollmentCount",
         "course.discountPercent",
+        "course.averageRating",
+        "course.reviewCount",
         "course.isActive",
         "course.publishedAt",
         "course.createdAt",
@@ -202,6 +208,8 @@ export class CourseRepository {
         "course.price",
         "course.enrollmentCount",
         "course.discountPercent",
+        "course.averageRating",
+        "course.reviewCount",
         "course.isActive",
         "course.publishedAt",
         "course.createdAt",
@@ -258,6 +266,8 @@ export class CourseRepository {
         "course.price",
         "course.enrollmentCount",
         "course.discountPercent",
+        "course.averageRating",
+        "course.reviewCount",
         "course.isActive",
         "course.publishedAt",
         "course.createdAt",
@@ -294,6 +304,7 @@ export class CourseRepository {
       .leftJoinAndSelect("course.tags", "tag")
       .leftJoinAndSelect("course.sections", "section")
       .leftJoinAndSelect("section.lectures", "lecture")
+      .leftJoinAndSelect("section.quizzes", "quiz")
       .select([
         "course.id",
         "course.title",
@@ -301,6 +312,10 @@ export class CourseRepository {
         "course.description",
         "course.thumbnailUrl",
         "course.price",
+        "course.enrollmentCount",
+        "course.discountPercent",
+        "course.averageRating",
+        "course.reviewCount",
         "course.isActive",
         "course.publishedAt",
         "course.createdAt",
@@ -324,6 +339,10 @@ export class CourseRepository {
         "lecture.contentText",
         "lecture.videoUrl",
         "lecture.orderIndex",
+        "quiz.id",
+        "quiz.title",
+        "quiz.description",
+        "quiz.orderIndex",
       ])
       .where("course.id = :id", { id })
       .orderBy("section.orderIndex", "ASC")

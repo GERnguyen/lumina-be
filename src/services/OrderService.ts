@@ -31,6 +31,9 @@ export class OrderService {
       relations: {
         details: {
           course: {
+            instructor: {
+              profile: true,
+            },
             tags: true,
             category: true,
           },
@@ -54,6 +57,9 @@ export class OrderService {
         user: true,
         details: {
           course: {
+            instructor: {
+              profile: true,
+            },
             tags: true,
             category: true,
           },
@@ -147,6 +153,9 @@ export class OrderService {
             user: true,
             details: {
               course: {
+                instructor: {
+                  profile: true,
+                },
                 tags: true,
                 category: true,
               },
@@ -191,6 +200,9 @@ export class OrderService {
             relations: {
               details: {
                 course: {
+                  instructor: {
+                    profile: true,
+                  },
                   tags: true,
                   category: true,
                 },
@@ -311,6 +323,9 @@ export class OrderService {
               user: true,
               details: {
                 course: {
+                  instructor: {
+                    profile: true,
+                  },
                   tags: true,
                   category: true,
                 },
@@ -351,6 +366,9 @@ export class OrderService {
         user: true,
         details: {
           course: {
+            instructor: {
+              profile: true,
+            },
             tags: true,
             category: true,
           },

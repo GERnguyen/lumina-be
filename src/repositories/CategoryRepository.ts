@@ -2,6 +2,10 @@ import { Repository } from "typeorm";
 import { AppDataSource } from "../data-source";
 import { Category } from "../entities/Category";
 
+export interface CategoryWithCourseCount extends Category {
+  courseCount: number;
+}
+
 export interface CreateCategoryInput {
   name: string;
   description?: string;
@@ -15,15 +19,20 @@ export class CategoryRepository {
     this.repository = AppDataSource.getRepository(Category);
   }
 
-  async findAll(): Promise<Category[]> {
-    return this.repository.find({
-      relations: {
-        parent: true,
-      },
-      order: {
-        name: "ASC",
-      },
-    });
+  async findAll(): Promise<CategoryWithCourseCount[]> {
+    const categories = await this.repository
+      .createQueryBuilder("category")
+      .leftJoinAndSelect("category.parent", "parent")
+      .loadRelationCountAndMap(
+        "category.courseCount",
+        "category.courses",
+        "course",
+        (qb) => qb.andWhere("course.isActive = :isActive", { isActive: true }),
+      )
+      .orderBy("category.name", "ASC")
+      .getMany();
+
+    return categories as CategoryWithCourseCount[];
   }
 
   async findById(id: number): Promise<Category | null> {
