@@ -37,6 +37,18 @@ __decorate([
     __metadata("design:type", String)
 ], Review.prototype, "comment", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: "instructor_reply", type: "text", nullable: true }),
+    __metadata("design:type", String)
+], Review.prototype, "instructorReply", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        name: "instructor_replied_at",
+        type: "datetime",
+        nullable: true,
+    }),
+    __metadata("design:type", Date)
+], Review.prototype, "instructorRepliedAt", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)({ name: "created_at" }),
     __metadata("design:type", Date)
 ], Review.prototype, "createdAt", void 0);

@@ -3,6 +3,7 @@ import { courseController } from "../controllers/CourseController";
 import { lectureController } from "../controllers/LectureController";
 import { questionController } from "../controllers/QuestionController";
 import { quizController } from "../controllers/QuizController";
+import { reviewController } from "../controllers/ReviewController";
 import { sectionController } from "../controllers/SectionController";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { requireRole } from "../middlewares/role.middleware";
@@ -79,6 +80,10 @@ instructorRoutes.put(
 instructorRoutes.delete(
   "/questions/:questionId",
   questionController.deleteQuestionForInstructor,
+);
+instructorRoutes.patch(
+  "/reviews/:reviewId/reply",
+  reviewController.replyToReview,
 );
 
 export default instructorRoutes;

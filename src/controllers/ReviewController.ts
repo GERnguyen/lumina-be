@@ -16,6 +16,14 @@ interface CourseParams {
   courseId: string;
 }
 
+interface ReviewParams {
+  reviewId: string;
+}
+
+interface ReplyReviewBody {
+  replyComment?: string;
+}
+
 export class ReviewController {
   constructor(private readonly service: ReviewService) {}
 
@@ -85,6 +93,53 @@ export class ReviewController {
       const message =
         error instanceof Error ? error.message : "Failed to fetch reviews.";
       res.status(500).json({ message });
+    }
+  };
+
+  replyToReview = async (
+    req: AuthenticatedRequest & {
+      params: ReviewParams;
+      body: ReplyReviewBody;
+    },
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const userId = req.user?.userId;
+      const role = req.user?.role;
+
+      if (!userId || !role) {
+        res.status(401).json({ message: "Unauthorized." });
+        return;
+      }
+
+      const reviewId = Number(req.params.reviewId);
+      if (Number.isNaN(reviewId)) {
+        res.status(400).json({ message: "Invalid review id." });
+        return;
+      }
+
+      const result = await this.service.replyToReview(userId, role, {
+        reviewId,
+        replyComment: req.body.replyComment ?? "",
+      });
+
+      res.status(200).json(result);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to reply review.";
+
+      const statusCode =
+        message === "Reply content is required" ||
+        message === "Invalid review id."
+          ? 400
+          : message === "Review not found"
+            ? 404
+            : message === "Unauthorized" ||
+                message === "Bạn không có quyền trả lời đánh giá này"
+              ? 403
+              : 500;
+
+      res.status(statusCode).json({ message });
     }
   };
 }

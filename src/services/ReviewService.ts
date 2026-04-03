@@ -37,6 +37,17 @@ export interface CourseReviewSummary {
   reviews: CourseReviewItem[];
 }
 
+export interface ReplyReviewInput {
+  reviewId: number;
+  replyComment: string;
+}
+
+export interface ReplyReviewResult {
+  id: number;
+  instructorReply?: string;
+  instructorRepliedAt?: Date;
+}
+
 export class ReviewService {
   constructor(private readonly repo: ReviewRepository) {}
 
@@ -161,6 +172,43 @@ export class ReviewService {
       averageRating,
       totalReviews,
       reviews,
+    };
+  }
+
+  async replyToReview(
+    actorUserId: number,
+    actorRole: string,
+    input: ReplyReviewInput,
+  ): Promise<ReplyReviewResult> {
+    const normalizedRole = actorRole.trim().toLowerCase();
+    if (normalizedRole !== "instructor" && normalizedRole !== "admin") {
+      throw new Error("Unauthorized");
+    }
+
+    const sanitizedReply = input.replyComment?.trim();
+    if (!sanitizedReply) {
+      throw new Error("Reply content is required");
+    }
+
+    const review = await this.repo.findByIdWithCourseInstructor(input.reviewId);
+    if (!review) {
+      throw new Error("Review not found");
+    }
+
+    const instructorId = review.course?.instructor?.id;
+    if (normalizedRole === "instructor" && instructorId !== actorUserId) {
+      throw new Error("Bạn không có quyền trả lời đánh giá này");
+    }
+
+    review.instructorReply = sanitizedReply;
+    review.instructorRepliedAt = new Date();
+
+    const savedReview = await this.repo.save(review);
+
+    return {
+      id: savedReview.id,
+      instructorReply: savedReview.instructorReply,
+      instructorRepliedAt: savedReview.instructorRepliedAt,
     };
   }
 }

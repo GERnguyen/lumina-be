@@ -6,6 +6,8 @@ export interface CourseReviewItem {
   id: number;
   rating: number;
   comment?: string;
+  instructorReply?: string;
+  instructorRepliedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
   user: {
@@ -39,6 +41,8 @@ export class ReviewRepository {
         "review.id AS reviewId",
         "review.rating AS rating",
         "review.comment AS comment",
+        "review.instructor_reply AS instructorReply",
+        "review.instructor_replied_at AS instructorRepliedAt",
         "review.created_at AS createdAt",
         "review.updated_at AS updatedAt",
         "user.id AS userId",
@@ -50,6 +54,8 @@ export class ReviewRepository {
         reviewId: number | string;
         rating: number | string;
         comment: string | null;
+        instructorReply: string | null;
+        instructorRepliedAt: Date | string | null;
         createdAt: Date | string;
         updatedAt: Date | string;
         userId: number | string;
@@ -61,6 +67,10 @@ export class ReviewRepository {
       id: Number(row.reviewId),
       rating: Number(row.rating),
       comment: row.comment ?? undefined,
+      instructorReply: row.instructorReply ?? undefined,
+      instructorRepliedAt: row.instructorRepliedAt
+        ? new Date(row.instructorRepliedAt)
+        : undefined,
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
       user: {
@@ -83,6 +93,17 @@ export class ReviewRepository {
       relations: {
         user: true,
         course: true,
+      },
+    });
+  }
+
+  async findByIdWithCourseInstructor(reviewId: number): Promise<Review | null> {
+    return this.repository.findOne({
+      where: { id: reviewId },
+      relations: {
+        course: {
+          instructor: true,
+        },
       },
     });
   }

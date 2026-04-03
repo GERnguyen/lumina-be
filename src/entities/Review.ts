@@ -28,6 +28,16 @@ export class Review {
   @Column({ type: "text", nullable: true })
   comment?: string;
 
+  @Column({ name: "instructor_reply", type: "text", nullable: true })
+  instructorReply?: string;
+
+  @Column({
+    name: "instructor_replied_at",
+    type: "datetime",
+    nullable: true,
+  })
+  instructorRepliedAt?: Date;
+
   @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;
 
