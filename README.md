@@ -1,23 +1,23 @@
 # Cinx E-learning Backend
 
-Backend service cho nen tang hoc truc tuyen Lumina (Cinx), phuc vu cac luong student, instructor, admin.
-Project nay tap trung vao nghiep vu E-learning day du thay vi chi la demo CRUD.
+Backend API service for the Lumina (Cinx) online learning platform.
+This project is built around real e-learning workflows for student, instructor, and admin roles.
 
 ## Project Overview
 
-Backend cung cap API cho:
+The backend provides APIs for:
 
-- Dang ky, dang nhap, phan quyen theo role.
-- Quan ly khoa hoc, chuong, bai giang, quiz, cau hoi va dap an.
-- Mua khoa hoc, ghi nhan enrollments, lich su hoc va tien do hoc.
-- Danh gia khoa hoc va phan hoi review tu instructor.
-- Moderation cho admin: duyet khoa hoc, quan ly nguoi dung.
+- Authentication, authorization, and role-based access.
+- Course management: sections, lectures, quizzes, questions, answers.
+- Orders, enrollments, and learning progress tracking.
+- Course reviews and instructor replies.
+- Admin moderation: user management and course approval.
 
 ## Core Roles
 
-- `student`: tim kiem khoa hoc, mua khoa hoc, hoc bai, lam quiz, danh gia.
-- `instructor`: tao/chinh sua khoa hoc, quan ly hoc vien, tra loi review.
-- `admin`: quan ly user va duyet noi dung truoc khi public.
+- `student`: discover, purchase, learn, and review courses.
+- `instructor`: create/update course content, monitor learners, reply to reviews.
+- `admin`: manage users and moderate course publishing lifecycle.
 
 ## Tech Stack
 
@@ -29,40 +29,40 @@ Backend cung cap API cho:
 
 ## High-Level Architecture
 
-- `src/controllers`: xu ly request/response, validate input co ban.
-- `src/services`: business logic va quy tac nghiep vu.
-- `src/repositories`: truy van du lieu theo use-case.
-- `src/entities`: mo hinh bang du lieu va relation.
-- `src/routes`: route modules theo domain.
-- `src/middlewares`: auth + role guard.
+- `src/controllers`: request/response handling and input-level checks.
+- `src/services`: business rules and domain logic.
+- `src/repositories`: data access and query composition.
+- `src/entities`: relational data model definitions.
+- `src/routes`: API route modules grouped by domain.
+- `src/middlewares`: auth middleware and role guards.
 
-Pattern chinh: `Route -> Controller -> Service -> Repository -> Entity/DB`.
+Main flow: `Route -> Controller -> Service -> Repository -> Entity/DB`.
 
 ## Important Business Flows
 
 ### Course lifecycle
 
-1. Instructor tao va cap nhat khoa hoc.
-2. Khoa hoc pending truoc khi duoc admin duyet.
-3. Khoa hoc active se hien thi tren trang public.
-4. Instructor/admin van co endpoint private de quan ly khoa hoc chua active.
+1. Instructors create and update course content.
+2. New/updated courses can stay in pending state before approval.
+3. Only active courses are visible on public endpoints.
+4. Instructor/admin private endpoints are available for non-active course management.
 
 ### Learning and progress
 
-1. Student mua khoa hoc.
-2. Enrollment duoc tao.
-3. Lecture completion cap nhat phan tram tien do.
-4. Student co the review sau khi da mua khoa hoc.
+1. Student purchases a course.
+2. Enrollment is created.
+3. Lecture completion updates learning progress.
+4. Student can submit course reviews after enrollment.
 
 ### Review and instructor reply
 
-- Student gui review cho course.
-- Instructor (owner) hoac admin co the reply review.
-- Reply duoc tra ve trong API review de FE render.
+- Student submits a review.
+- Course owner (instructor) or admin can reply.
+- Reply is returned by review APIs for frontend rendering.
 
 ## Data Model Snapshot
 
-Mot so entity trung tam:
+Core entities include:
 
 - `User`, `Profile`, `OtpRecord`
 - `Category`, `Course`, `Section`, `Lecture`
@@ -86,7 +86,7 @@ npm install
 
 ### 2) Start MySQL
 
-`docker-compose.yml` map MySQL ra local port `3307`.
+`docker-compose.yml` maps MySQL to local port `3307`.
 
 ```bash
 docker compose up -d
@@ -94,7 +94,7 @@ docker compose up -d
 
 ### 3) Environment variables
 
-Tao file `.env` trong thu muc `be/`:
+Create a `.env` file in the `be` directory:
 
 ```env
 PORT=9090
@@ -120,7 +120,7 @@ ORDER_PENDING_TTL_MINUTES=30
 npm run seed
 ```
 
-Seed bo sung (khong reset):
+Extra seed (append-only, no reset):
 
 ```bash
 npm run seed:extra
@@ -143,13 +143,13 @@ npm start
 
 ## Scripts
 
-- `npm run dev`: chay backend local bang `ts-node` + `nodemon`.
-- `npm run build`: compile TypeScript sang `dist/`.
-- `npm start`: chay production tu `dist/index.js`.
-- `npm run seed`: seed full du lieu demo.
-- `npm run seed:extra`: bo sung them du lieu mau.
+- `npm run dev`: run backend locally with `ts-node` + `nodemon`.
+- `npm run build`: compile TypeScript to `dist`.
+- `npm start`: run production from `dist/index.js`.
+- `npm run seed`: seed full demo dataset.
+- `npm run seed:extra`: add extra demo data (append-only).
 
 ## Notes
 
-- `synchronize: true` dang duoc bat trong `src/data-source.ts` de dong bo schema nhanh khi dev.
-- Moi truong production nen dung migration thay vi synchronize.
+- `synchronize: true` is currently enabled in `src/data-source.ts` for local development convenience.
+- Production environments should use migrations instead of synchronize.
