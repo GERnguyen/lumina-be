@@ -3,6 +3,8 @@
 Backend API service for the Lumina (Cinx) online learning platform.
 This project is built around real e-learning workflows for student, instructor, and admin roles.
 
+Front-end repo: https://github.com/GERnguyen/lumina-fe-oose
+
 ## Project Overview
 
 The backend provides APIs for:
